@@ -1,0 +1,26 @@
+[package]
+name = "velvet"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.78"
+structured-logger = "1.0.3"
+axum = { version = "0.7.3", features = ["http2", "macros"] }
+axum-prometheus = "0.5.0"
+askama = { version = "0.12.1", features = ["with-axum"] }
+askama_axum = "0.4.0"
+sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio"] }
+sentry = { version = "0.32.1", features = ["anyhow", "tower", "tracing"] }
+sentry-tower = { version = "0.32.1", features = ["axum", "http"] }
+rust-embed = { version = "8.2.0", features = ["axum", "tokio"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
+dotenvy = "0.15.0"
+uuid = { version = "1.6.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["serde"] }
+askama_derive = { version = "0.12.5", features = ["with-axum"] }
+
