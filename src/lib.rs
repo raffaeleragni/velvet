@@ -5,8 +5,8 @@ pub mod prelude {
     pub use super::AppError;
     pub use super::AppResult;
     pub use askama::Template;
+    pub use axum::extract::{Form, Json, Path};
     pub use axum::routing::{delete, get, patch, post, put};
-    pub use axum::extract::{Path, Json, Form};
     pub use axum::{Extension, Router};
     pub use rust_embed::RustEmbed;
     pub use serde::{Deserialize, Serialize};
@@ -20,6 +20,7 @@ use axum::Extension;
 use axum::{routing::get, Router};
 use axum_prometheus::PrometheusMetricLayer;
 use rust_embed::RustEmbed;
+use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::env;
@@ -84,9 +85,11 @@ async fn start(app: Router) -> anyhow::Result<()> {
 
     logger();
     let _guard = sentry();
-
     let app = prometheus(app);
     let app = app.route("/status/liveness", get(|| async { "".into_response() }));
+    let app = app
+        .layer(NewSentryLayer::new_from_top())
+        .layer(SentryHttpLayer::with_transaction());
 
     info!("Starting server on {bind}:{port}");
     axum::serve(listener, app).await?;
