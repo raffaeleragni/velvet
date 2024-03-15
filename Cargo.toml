@@ -23,4 +23,5 @@ uuid = { version = "1.6.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["serde"] }
 askama_derive = { version = "0.12.5", features = ["with-axum"] }
+mime_guess = "2.0.4"
 

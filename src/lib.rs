@@ -54,24 +54,20 @@ impl App {
         }
     }
 
-    pub fn include_static<T: RustEmbed>(
-        self,
-        mime_type: &'static str,
-        path: &'static str,
-        file: &'static str,
-    ) -> Self {
-        Self {
-            router: self.router.route(
-                path,
-                get(|| async {
-                    (
-                        [("Content-Type", mime_type.to_string())],
-                        T::get(file).unwrap().data.to_vec(),
-                    )
-                        .into_response()
-                }),
-            ),
+    pub fn include_statics<T: RustEmbed>(self) -> Self {
+        let mut app = self;
+        for file in T::iter() {
+            let file = file.as_ref();
+            let bytes = T::get(file).unwrap().data.to_vec();
+            let mime = mime_guess::from_path(file).first_raw().unwrap_or("");
+            app = Self {
+                router: app.router.route(
+                    format!("/{}", file).as_str(),
+                    get(|| async { ([("Content-Type", mime.to_owned())], bytes).into_response() }),
+                ),
+            };
         }
+        app
     }
 }
 
