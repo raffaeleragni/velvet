@@ -54,7 +54,7 @@ impl App {
         }
     }
 
-    pub fn include_statics<T: RustEmbed>(self) -> Self {
+    pub fn statics<T: RustEmbed>(self) -> Self {
         let mut app = self;
         for file in T::iter() {
             let file = file.as_ref();
