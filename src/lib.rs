@@ -44,8 +44,8 @@ impl App {
         Self::default()
     }
 
-    pub async fn start(self) -> anyhow::Result<()> {
-        start(self.router).await
+    pub async fn start(self) {
+        start(self.router).await.unwrap()
     }
 
     pub fn router(self, router: Router) -> Self {
