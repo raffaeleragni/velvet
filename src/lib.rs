@@ -33,19 +33,23 @@ pub type AppResult<T> = anyhow::Result<T>;
 
 pub struct AppError(anyhow::Error);
 
+#[derive(Default)]
 pub struct App {
     router: Router,
 }
 
 impl App {
-    pub fn new(router: Router) -> Self {
+    pub fn new() -> Self {
         dotenvy::dotenv().ok();
-
-        Self { router }
+        Self::default()
     }
 
     pub async fn start(self) -> anyhow::Result<()> {
         start(self.router).await
+    }
+
+    pub fn router(self, router: Router) -> Self {
+        Self { router }
     }
 
     pub fn inject<T: Clone + Send + Sync + 'static>(self, t: T) -> Self {
