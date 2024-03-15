@@ -152,6 +152,7 @@ impl IntoResponse for AppError {
 }
 
 pub async fn database() -> PgPool {
+    dotenvy::dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
     let max_connections = env::var("DATABASE_MAX_CONNECTIONS")
         .ok()
