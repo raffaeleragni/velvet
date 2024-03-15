@@ -24,10 +24,10 @@ use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::env;
-use structured_logger::async_json::new_writer;
 use tokio::net::TcpListener;
 use tracing::error;
 use tracing::info;
+use tracing_subscriber::fmt::format::{Format, JsonFields};
 
 pub type AppResult<T> = anyhow::Result<T>;
 
@@ -115,11 +115,12 @@ fn logger() {
         .map(|s| s.parse::<bool>().unwrap_or(false))
         .unwrap_or(false);
     if enabled {
-        structured_logger::Builder::with_level("info")
-            .with_target_writer("*", new_writer(tokio::io::stdout()))
+        tracing_subscriber::fmt()
+            .event_format(Format::default().json())
+            .fmt_fields(JsonFields::new())
             .init();
     } else {
-        tracing_subscriber::fmt::init();
+        tracing_subscriber::fmt().init();
     }
 }
 

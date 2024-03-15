@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.78"
-structured-logger = "1.0.3"
 axum = { version = "0.7.3", features = ["http2", "macros"] }
 axum-prometheus = "0.5.0"
 askama = { version = "0.12.1", features = ["with-axum"] }
@@ -20,6 +19,6 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1", features = ["derive"] }
 dotenvy = "0.15.0"
 tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["serde"] }
+tracing-subscriber = { version = "0.3.18", features = ["json"] }
 mime_guess = "2.0.4"
 
