@@ -49,7 +49,9 @@ impl App {
     }
 
     pub fn router(self, router: Router) -> Self {
-        Self { router }
+        Self {
+            router: self.router.merge(router),
+        }
     }
 
     pub fn inject<T: Clone + Send + Sync + 'static>(self, t: T) -> Self {
