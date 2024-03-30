@@ -33,6 +33,21 @@ pub type AppResult<T> = anyhow::Result<T>;
 
 pub struct AppError(anyhow::Error);
 
+pub async fn database() -> PgPool {
+    // May not know if app is constructed before databse, so trigger dotenvs in both situations
+    dotenv::dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
+    let max_connections = env::var("DATABASE_MAX_CONNECTIONS")
+        .ok()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(1);
+    PgPoolOptions::new()
+        .max_connections(max_connections)
+        .connect(&database_url)
+        .await
+        .unwrap()
+}
+
 #[derive(Default)]
 pub struct App {
     router: Router,
@@ -40,7 +55,8 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        dotenvy::dotenv().ok();
+        // May not know if app is constructed before databse, so trigger dotenvs in both situations
+        dotenv::dotenv().ok();
         Self::default()
     }
 
@@ -152,18 +168,4 @@ impl IntoResponse for AppError {
         error!("Error: {}", self.0);
         (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
     }
-}
-
-pub async fn database() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
-    let max_connections = env::var("DATABASE_MAX_CONNECTIONS")
-        .ok()
-        .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(1);
-    PgPoolOptions::new()
-        .max_connections(max_connections)
-        .connect(&database_url)
-        .await
-        .unwrap()
 }
