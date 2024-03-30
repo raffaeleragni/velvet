@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.81"
-axum = { version = "0.7.4", features = ["http2", "macros"] }
+axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-prometheus = "0.6.1"
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
