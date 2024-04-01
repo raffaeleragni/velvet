@@ -12,7 +12,7 @@ pub mod prelude {
     pub use rust_embed::RustEmbed;
     pub use serde::{Deserialize, Serialize};
     pub use sqlx::{Pool, Postgres};
-    pub use tracing::{debug, error, info, span, trace, warn, Level};
+    pub use tracing::{debug, error, info, instrument, span, trace, warn, Level};
 }
 
 use askama_axum::IntoResponse;
