@@ -32,7 +32,7 @@ use tracing::error;
 use tracing::info;
 use tracing_subscriber::fmt::format::{Format, JsonFields};
 
-pub type AppResult<T> = anyhow::Result<T>;
+pub type AppResult<T> = Result<T, AppError>;
 
 pub struct AppError(anyhow::Error);
 
