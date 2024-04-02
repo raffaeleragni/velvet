@@ -1,5 +1,6 @@
 #[macro_use]
 pub mod prelude {
+    pub use super::client;
     pub use super::database;
     pub use super::App;
     pub use super::AppError;
@@ -48,6 +49,10 @@ pub async fn database() -> PgPool {
         .connect(&database_url)
         .await
         .unwrap()
+}
+
+pub fn client() -> reqwest::Client {
+    reqwest::Client::default()
 }
 
 #[derive(Default)]
