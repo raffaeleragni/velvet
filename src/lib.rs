@@ -164,6 +164,12 @@ impl From<sqlx::Error> for AppError {
     }
 }
 
+impl From<reqwest::Error> for AppError {
+    fn from(value: reqwest::Error) -> Self {
+        Self(value.into())
+    }
+}
+
 impl From<anyhow::Error> for AppError {
     fn from(value: anyhow::Error) -> Self {
         Self(value)
