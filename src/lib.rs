@@ -5,6 +5,7 @@ pub mod prelude {
     pub use super::App;
     pub use super::AppError;
     pub use super::AppResult;
+    pub use super::CookieToken;
     pub use askama::Template;
     pub use axum::extract::{Form, Json, Path};
     pub use axum::routing::{delete, get, patch, post, put};
@@ -18,9 +19,12 @@ pub mod prelude {
 }
 
 use askama_axum::IntoResponse;
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
 use axum::http::StatusCode;
-use axum::Extension;
+use axum::{async_trait, Extension};
 use axum::{routing::get, Router};
+use axum_extra::extract::CookieJar;
 use axum_prometheus::PrometheusMetricLayer;
 use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
@@ -35,6 +39,30 @@ use tracing_subscriber::fmt::format::{Format, JsonFields};
 pub type AppResult<T> = Result<T, AppError>;
 
 pub struct AppError(anyhow::Error);
+
+pub struct CookieToken(pub String);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for CookieToken
+where
+    S: Send + Sync,
+{
+    type Rejection = axum::response::Response<String>;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let jar = match CookieJar::from_request_parts(parts, state).await {
+            Ok(jar) => jar,
+            Err(err) => match err {},
+        };
+        let value = jar.get("token").ok_or(
+            axum::response::Response::builder()
+                .status(401)
+                .body("401 Unauthorized".to_string())
+                .unwrap(),
+        )?;
+        Ok(Self(value.to_string()))
+    }
+}
 
 pub async fn database() -> PgPool {
     // May not know if app is constructed before databse, so trigger dotenvs in both situations
