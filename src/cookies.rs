@@ -5,7 +5,12 @@ pub struct CookieToken(pub String);
 
 impl CookieToken {
     pub fn set(jar: CookieJar, token: String) -> CookieJar {
-        jar.add(Cookie::new("token", token))
+        let c = Cookie::build(("token", token))
+            .secure(true)
+            .http_only(true)
+            .same_site(axum_extra::extract::cookie::SameSite::Lax)
+            .build();
+        jar.add(c)
     }
 }
 
