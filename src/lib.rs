@@ -14,6 +14,8 @@ pub mod prelude {
     pub use super::errors::AppResult;
     pub use askama::Template;
     pub use axum::extract::{Form, Json, Path};
+    pub use axum::http::StatusCode;
+    pub use axum::response::Redirect;
     pub use axum::routing::{delete, get, patch, post, put};
     pub use axum::{Extension, Router};
     pub use axum_extra::extract::CookieJar;
