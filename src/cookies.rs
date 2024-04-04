@@ -4,8 +4,8 @@ use axum_extra::extract::{cookie::Cookie, CookieJar};
 pub struct CookieToken(pub String);
 
 impl CookieToken {
-    pub fn set(jar: CookieJar, token: String) {
-        let _ = jar.add(Cookie::new("token", token));
+    pub fn set(jar: CookieJar, token: String) -> CookieJar {
+        jar.add(Cookie::new("token", token))
     }
 }
 
