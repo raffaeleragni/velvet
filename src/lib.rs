@@ -16,6 +16,7 @@ pub mod prelude {
     pub use axum::extract::{Form, Json, Path};
     pub use axum::routing::{delete, get, patch, post, put};
     pub use axum::{Extension, Router};
+    pub use axum_extra::extract::CookieJar;
     pub use reqwest::Client;
     pub use rust_embed::RustEmbed;
     pub use serde::{Deserialize, Serialize};
