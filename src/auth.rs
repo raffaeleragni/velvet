@@ -64,8 +64,8 @@ where
             })?;
         let split = header_value.split_once(' ');
         match split {
-            Some((_, value)) => Ok(Self(value.to_string())),
-            None => Err(axum::response::Response::builder()
+            Some(("Bearer", value)) => Ok(Self(value.to_string())),
+            _ => Err(axum::response::Response::builder()
                 .status(401)
                 .body("401 Unauthorized".to_string())
                 .unwrap()),
