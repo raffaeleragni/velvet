@@ -28,12 +28,7 @@ where
             Ok(jar) => jar,
             Err(err) => match err {},
         };
-        let value = jar.get("token").ok_or(
-            axum::response::Response::builder()
-                .status(401)
-                .body("401 Unauthorized".to_string())
-                .unwrap(),
-        )?;
+        let value = jar.get("token").ok_or(response_unauthorized())?;
         Ok(Self(value.to_string()))
     }
 }
@@ -49,26 +44,20 @@ where
         let header_value = parts
             .headers
             .get(AUTHORIZATION)
-            .ok_or(
-                axum::response::Response::builder()
-                    .status(401)
-                    .body("401 Unauthorized".to_string())
-                    .unwrap(),
-            )?
+            .ok_or(response_unauthorized())?
             .to_str()
-            .map_err(|_| {
-                axum::response::Response::builder()
-                    .status(401)
-                    .body("401 Unauthorized".to_string())
-                    .unwrap()
-            })?;
+            .map_err(|_| response_unauthorized())?;
         let split = header_value.split_once(' ');
         match split {
             Some(("Bearer", value)) => Ok(Self(value.to_string())),
-            _ => Err(axum::response::Response::builder()
-                .status(401)
-                .body("401 Unauthorized".to_string())
-                .unwrap()),
+            _ => Err(response_unauthorized()),
         }
     }
+}
+
+fn response_unauthorized() -> axum::response::Response<String> {
+    axum::response::Response::builder()
+        .status(401)
+        .body("401 Unauthorized".to_string())
+        .unwrap()
 }
