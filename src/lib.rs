@@ -1,14 +1,14 @@
 mod app;
+mod auth;
 mod client;
-mod cookies;
 mod db;
 mod errors;
 
 #[macro_use]
 pub mod prelude {
     pub use super::app::App;
+    pub use super::auth::CookieToken;
     pub use super::client::client;
-    pub use super::cookies::CookieToken;
     pub use super::db::database;
     pub use super::errors::AppError;
     pub use super::errors::AppResult;
