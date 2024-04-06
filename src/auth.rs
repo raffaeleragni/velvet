@@ -43,7 +43,7 @@ where
     fn authorized_cookie(self, f: F) -> Self;
 }
 
-pub fn claims_for<T: DeserializeOwned>(token: &str) -> Result<T, Box<dyn Error>> {
+pub fn claims_for<T: DeserializeOwned>(token: &str) -> anyhow::Result<T> {
     Ok(token.parse::<VerifiedClaims<T>>()?.1)
 }
 
@@ -109,11 +109,11 @@ where
 }
 
 impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
-    type Err = Box<dyn Error>;
+    type Err = anyhow::Error;
     fn from_str(token: &str) -> Result<Self, Self::Err> {
         let key = DECODING_KEY
             .get()
-            .ok_or("DECODING_KEY was not initialized")?;
+            .ok_or(anyhow::Error::msg("DECODING_KEY was not initialized"))?;
         let decoded = decode::<T>(token, key, &Validation::default())?;
         Ok(VerifiedClaims(decoded.header, decoded.claims))
     }
