@@ -1,9 +1,16 @@
+use std::{error::Error, str::FromStr};
+
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
+use jsonwebtoken::{decode, DecodingKey, Header, Validation};
 use reqwest::header::AUTHORIZATION;
+use serde::de::DeserializeOwned;
+use tokio::sync::OnceCell;
 
+pub static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
+pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
 
 impl CookieToken {
     pub fn set(jar: CookieJar, token: String) -> CookieJar {
@@ -52,6 +59,17 @@ where
             Some(("Bearer", value)) => Ok(Self(value.to_string())),
             _ => Err(response_unauthorized()),
         }
+    }
+}
+
+impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
+    type Err = Box<dyn Error>;
+    fn from_str(token: &str) -> Result<Self, Self::Err> {
+        let key = DECODING_KEY
+            .get()
+            .ok_or("DECODING_KEY was not initialized")?;
+        let decoded = decode::<T>(token, key, &Validation::default())?;
+        Ok(VerifiedClaims(decoded.header, decoded.claims))
     }
 }
 

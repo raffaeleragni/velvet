@@ -9,6 +9,8 @@ pub mod prelude {
     pub use super::app::App;
     pub use super::auth::BearerToken;
     pub use super::auth::CookieToken;
+    pub use super::auth::VerifiedClaims;
+    pub use super::auth::DECODING_KEY;
     pub use super::client::client;
     pub use super::db::database;
     pub use super::errors::AppError;
