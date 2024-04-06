@@ -7,14 +7,15 @@ use reqwest::header::AUTHORIZATION;
 use serde::de::DeserializeOwned;
 use tokio::sync::OnceCell;
 
-pub static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
+static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
+pub async fn setup_jwt_key_from_env() {
+    let key = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
+    DECODING_KEY.get_or_init(|| async move { key }).await;
+}
+
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
 pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
-
-pub async fn jwt_key_from_env() -> DecodingKey {
-    DecodingKey::from_secret(env::var("JWT_SECRET").unwrap_or("".to_string()).as_ref())
-}
 
 impl CookieToken {
     pub fn set(jar: CookieJar, token: String) -> CookieJar {

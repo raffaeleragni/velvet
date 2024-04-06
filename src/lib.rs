@@ -7,11 +7,10 @@ mod errors;
 #[macro_use]
 pub mod prelude {
     pub use super::app::App;
-    pub use super::auth::jwt_key_from_env;
+    pub use super::auth::setup_jwt_key_from_env;
     pub use super::auth::BearerToken;
     pub use super::auth::CookieToken;
     pub use super::auth::VerifiedClaims;
-    pub use super::auth::DECODING_KEY;
     pub use super::client::client;
     pub use super::db::database;
     pub use super::errors::AppError;
