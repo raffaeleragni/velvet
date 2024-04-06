@@ -127,7 +127,7 @@ where
     let token = match BearerToken::from_request_parts(&mut parts, &()).await {
         Ok(token) => token,
         Err(e) => {
-            tracing::warn!(?e, "No bearer token in header");
+            tracing::debug!(?e, "No bearer token in header");
             return response_unauthorized();
         }
     };
@@ -140,7 +140,7 @@ where
             }
         }
         Err(e) => {
-            tracing::warn!(?e, "Failed to verify token");
+            tracing::debug!(?e, "Failed to verify token");
             return response_unauthorized();
         }
     }
@@ -155,7 +155,7 @@ where
     let token = match CookieToken::from_request_parts(&mut parts, &()).await {
         Ok(token) => token,
         Err(e) => {
-            tracing::warn!(?e, "No bearer token in cookies");
+            tracing::debug!(?e, "No bearer token in cookies");
             return response_unauthorized();
         }
     };
@@ -168,7 +168,7 @@ where
             }
         }
         Err(e) => {
-            tracing::warn!(?e, "Failed to verify token");
+            tracing::debug!(?e, "Failed to verify token");
             return response_unauthorized();
         }
     }
