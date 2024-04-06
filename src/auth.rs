@@ -11,16 +11,19 @@ use axum::{
     Router,
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
-use jsonwebtoken::{decode, DecodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use reqwest::header::AUTHORIZATION;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::OnceCell;
 
 static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
+static ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::const_new();
 pub async fn setup_jwt_key_from_env() {
     dotenv::dotenv().ok();
-    let key = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
-    DECODING_KEY.get_or_init(|| async move { key }).await;
+    let deckey = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
+    let enckey = EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
+    DECODING_KEY.get_or_init(|| async move { deckey }).await;
+    ENCODING_KEY.get_or_init(|| async move { enckey }).await;
 }
 
 pub struct CookieToken(pub String);
@@ -49,6 +52,17 @@ pub fn claims_for<T: DeserializeOwned>(token: &str) -> Result<T, StatusCode> {
 }
 
 impl CookieToken {
+    pub fn set_from_claims<T: Serialize>(
+        jar: CookieJar,
+        claims: T,
+    ) -> Result<CookieJar, Box<dyn Error>> {
+        let key = ENCODING_KEY
+            .get()
+            .ok_or("ENCODING_KEY was not initialized")?;
+        let token = encode(&Header::default(), &claims, key)?;
+        Ok(CookieToken::set(jar, token))
+    }
+
     pub fn set(jar: CookieJar, token: String) -> CookieJar {
         let c = Cookie::build(("token", token))
             .secure(true)
