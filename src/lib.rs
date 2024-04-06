@@ -8,6 +8,8 @@ mod errors;
 pub mod prelude {
     pub use super::app::App;
     pub use super::auth::setup_jwt_key_from_env;
+    pub use super::auth::AuthorizedBearer;
+    pub use super::auth::AuthorizedCookie;
     pub use super::auth::BearerToken;
     pub use super::auth::CookieToken;
     pub use super::auth::VerifiedClaims;

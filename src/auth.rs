@@ -1,6 +1,14 @@
 use std::{env, error::Error, str::FromStr};
 
-use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
+use axum::{
+    async_trait,
+    body::Body,
+    extract::{FromRequestParts, Request},
+    http::request::Parts,
+    middleware::{self, Next},
+    response::Response,
+    Router,
+};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use jsonwebtoken::{decode, DecodingKey, Header, Validation};
 use reqwest::header::AUTHORIZATION;
@@ -17,6 +25,12 @@ pub async fn setup_jwt_key_from_env() {
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
 pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
+pub trait AuthorizedBearer<T: DeserializeOwned, F: Send + Fn(&T) -> bool> {
+    fn authorized_bearer(self, f: F) -> Self;
+}
+pub trait AuthorizedCookie<T: DeserializeOwned, F: Send + Fn(&T) -> bool> {
+    fn authorized_cookie(self, f: F) -> Self;
+}
 
 impl CookieToken {
     pub fn set(jar: CookieJar, token: String) -> CookieJar {
@@ -34,7 +48,7 @@ impl<S> FromRequestParts<S> for CookieToken
 where
     S: Send + Sync,
 {
-    type Rejection = axum::response::Response<String>;
+    type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let jar = match CookieJar::from_request_parts(parts, state).await {
@@ -51,7 +65,7 @@ impl<S> FromRequestParts<S> for BearerToken
 where
     S: Send + Sync,
 {
-    type Rejection = axum::response::Response<String>;
+    type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
         let header_value = parts
@@ -79,9 +93,70 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
     }
 }
 
-fn response_unauthorized() -> axum::response::Response<String> {
-    axum::response::Response::builder()
+async fn authorize_from_token_string<T: DeserializeOwned, F: Fn(&T) -> bool>(
+    request: Request,
+    next: Next,
+    token: String,
+    f: F,
+) -> Response {
+    let claims: VerifiedClaims<T> = match token.parse() {
+        Ok(claims) => claims,
+        Err(_) => return response_unauthorized(),
+    };
+
+    let authorized = f(&claims.1);
+    if !authorized {
+        return response_unauthorized();
+    }
+
+    let response = next.run(request).await;
+
+    response
+}
+
+async fn authorize_from_bearer<T: DeserializeOwned, F: Fn(&T) -> bool>(
+    request: Request,
+    next: Next,
+    f: F,
+) -> Response {
+    let (mut parts, body) = request.into_parts();
+    let token = match BearerToken::from_request_parts(&mut parts, &()).await {
+        Ok(token) => token,
+        Err(_) => return response_unauthorized(),
+    };
+    let request = Request::from_parts(parts, body);
+    authorize_from_token_string(request, next, token.0, f).await
+}
+
+async fn authorize_from_cookie<T: DeserializeOwned, F: Fn(&T) -> bool>(
+    request: Request,
+    next: Next,
+    f: F,
+) -> Response {
+    let (mut parts, body) = request.into_parts();
+    let token = match CookieToken::from_request_parts(&mut parts, &()).await {
+        Ok(token) => token,
+        Err(_) => return response_unauthorized(),
+    };
+    let request = Request::from_parts(parts, body);
+    authorize_from_token_string(request, next, token.0, f).await
+}
+
+impl<T: DeserializeOwned, F: Send + Fn(&T) -> bool> AuthorizedBearer<T, F> for Router {
+    fn authorized_bearer(self, f: F) -> Self {
+        self
+    }
+}
+
+impl<T: DeserializeOwned, F: Send + Fn(&T) -> bool> AuthorizedCookie<T, F> for Router {
+    fn authorized_cookie(self, f: F) -> Self {
+        self
+    }
+}
+
+fn response_unauthorized() -> Response {
+    Response::builder()
         .status(401)
-        .body("401 Unauthorized".to_string())
+        .body(Body::new("401 Unauthorized".to_string()))
         .unwrap()
 }
