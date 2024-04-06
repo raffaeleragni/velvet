@@ -1,4 +1,4 @@
-use std::{error::Error, str::FromStr};
+use std::{env, error::Error, str::FromStr};
 
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use axum_extra::extract::{cookie::Cookie, CookieJar};
@@ -11,6 +11,10 @@ pub static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
 pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
+
+pub async fn jwt_key_from_env() -> DecodingKey {
+    DecodingKey::from_secret(env::var("JWT_SECRET").unwrap_or("".to_string()).as_ref())
+}
 
 impl CookieToken {
     pub fn set(jar: CookieJar, token: String) -> CookieJar {
