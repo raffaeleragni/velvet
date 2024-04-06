@@ -26,18 +26,16 @@ pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
 pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
 
-pub trait AuthorizedBearer<T, F>
+pub trait AuthorizedBearer<F>
 where
-    F: Send + Sync + Clone + Fn(&T) -> bool + 'static,
-    T: DeserializeOwned,
+    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self;
 }
 
-pub trait AuthorizedCookie<T, F>
+pub trait AuthorizedCookie<F>
 where
-    F: Send + Sync + Clone + Fn(&T) -> bool + 'static,
-    T: DeserializeOwned,
+    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self;
 }
@@ -103,35 +101,9 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
     }
 }
 
-async fn authorize_from_token_string<T, F>(
-    request: Request,
-    next: Next,
-    token: String,
-    f: F,
-) -> Response
+async fn authorize_from_bearer<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&T) -> bool,
-    T: DeserializeOwned,
-{
-    let claims: VerifiedClaims<T> = match token.parse() {
-        Ok(claims) => claims,
-        Err(_) => return response_unauthorized(),
-    };
-
-    let authorized = f(&claims.1);
-    if !authorized {
-        return response_unauthorized();
-    }
-
-    let response = next.run(request).await;
-
-    response
-}
-
-async fn authorize_from_bearer<T, F>(request: Request, next: Next, f: F) -> Response
-where
-    F: Fn(&T) -> bool,
-    T: DeserializeOwned,
+    F: Fn(&str) -> bool,
 {
     let (mut parts, body) = request.into_parts();
     let token = match BearerToken::from_request_parts(&mut parts, &()).await {
@@ -139,13 +111,16 @@ where
         Err(_) => return response_unauthorized(),
     };
     let request = Request::from_parts(parts, body);
-    authorize_from_token_string(request, next, token.0, f).await
+    let authorized = f(&token.0);
+    if !authorized {
+        return response_unauthorized();
+    }
+    next.run(request).await
 }
 
-async fn authorize_from_cookie<T, F>(request: Request, next: Next, f: F) -> Response
+async fn authorize_from_cookie<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&T) -> bool,
-    T: DeserializeOwned,
+    F: Fn(&str) -> bool,
 {
     let (mut parts, body) = request.into_parts();
     let token = match CookieToken::from_request_parts(&mut parts, &()).await {
@@ -153,40 +128,29 @@ where
         Err(_) => return response_unauthorized(),
     };
     let request = Request::from_parts(parts, body);
-    authorize_from_token_string(request, next, token.0, f).await
-}
-
-async fn otherlayer<F>(request: Request, next: Next, f: F) -> Response
-where
-    F: Fn() -> bool,
-{
-    if f() {
-        println!("a");
+    let authorized = f(&token.0);
+    if !authorized {
+        return response_unauthorized();
     }
     next.run(request).await
 }
 
-impl<T, F> AuthorizedBearer<T, F> for Router
+impl<F> AuthorizedBearer<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&T) -> bool + 'static,
-    T: DeserializeOwned,
+    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self {
-        let ff = || true;
-        let wrapper = |r, n| otherlayer(r, n, ff.clone());
-        self.layer(middleware::from_fn(wrapper));
-        let wrapper = |r, n| authorize_from_bearer(r, n, f.clone());
+        let wrapper = move |r, n| authorize_from_bearer(r, n, f.clone());
         self.layer(middleware::from_fn(wrapper))
     }
 }
 
-impl<T, F> AuthorizedCookie<T, F> for Router
+impl<F> AuthorizedCookie<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&T) -> bool + 'static,
-    T: DeserializeOwned,
+    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self {
-        let wrapper = |r, n| authorize_from_cookie(r, n, f.clone());
+        let wrapper = move |r, n| authorize_from_cookie(r, n, f.clone());
         self.layer(middleware::from_fn(wrapper))
     }
 }
