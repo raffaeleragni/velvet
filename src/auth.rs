@@ -5,6 +5,7 @@ use axum::{
     body::Body,
     extract::{FromRequestParts, Request},
     http::request::Parts,
+    http::StatusCode,
     middleware::{self, Next},
     response::Response,
     Router,
@@ -28,16 +29,23 @@ pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
 
 pub trait AuthorizedBearer<F>
 where
-    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self;
 }
 
 pub trait AuthorizedCookie<F>
 where
-    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self;
+}
+
+pub fn claims_for<T: DeserializeOwned>(token: &str) -> Result<T, StatusCode> {
+    Ok(token
+        .parse::<VerifiedClaims<T>>()
+        .map_err(|_| StatusCode::UNAUTHORIZED)?
+        .1)
 }
 
 impl CookieToken {
@@ -103,7 +111,7 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
 
 async fn authorize_from_bearer<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&str) -> bool,
+    F: Fn(&str) -> Result<bool, StatusCode>,
 {
     let (mut parts, body) = request.into_parts();
     let token = match BearerToken::from_request_parts(&mut parts, &()).await {
@@ -112,15 +120,20 @@ where
     };
     let request = Request::from_parts(parts, body);
     let authorized = f(&token.0);
-    if !authorized {
-        return response_unauthorized();
+    match authorized {
+        Ok(authorized) => {
+            if !authorized {
+                return response_unauthorized();
+            }
+        }
+        Err(_) => return response_unauthorized(),
     }
     next.run(request).await
 }
 
 async fn authorize_from_cookie<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&str) -> bool,
+    F: Fn(&str) -> Result<bool, StatusCode>,
 {
     let (mut parts, body) = request.into_parts();
     let token = match CookieToken::from_request_parts(&mut parts, &()).await {
@@ -129,15 +142,20 @@ where
     };
     let request = Request::from_parts(parts, body);
     let authorized = f(&token.0);
-    if !authorized {
-        return response_unauthorized();
+    match authorized {
+        Ok(authorized) => {
+            if !authorized {
+                return response_unauthorized();
+            }
+        }
+        Err(_) => return response_unauthorized(),
     }
     next.run(request).await
 }
 
 impl<F> AuthorizedBearer<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self {
         let wrapper = move |r, n| authorize_from_bearer(r, n, f.clone());
@@ -147,7 +165,7 @@ where
 
 impl<F> AuthorizedCookie<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&str) -> bool + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self {
         let wrapper = move |r, n| authorize_from_cookie(r, n, f.clone());
