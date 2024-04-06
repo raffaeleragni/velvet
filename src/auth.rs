@@ -5,7 +5,6 @@ use axum::{
     body::Body,
     extract::{FromRequestParts, Request},
     http::request::Parts,
-    http::StatusCode,
     middleware::{self, Next},
     response::Response,
     Router,
@@ -32,23 +31,20 @@ pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
 
 pub trait AuthorizedBearer<F>
 where
-    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self;
 }
 
 pub trait AuthorizedCookie<F>
 where
-    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self;
 }
 
-pub fn claims_for<T: DeserializeOwned>(token: &str) -> Result<T, StatusCode> {
-    Ok(token
-        .parse::<VerifiedClaims<T>>()
-        .map_err(|_| StatusCode::UNAUTHORIZED)?
-        .1)
+pub fn claims_for<T: DeserializeOwned>(token: &str) -> Result<T, Box<dyn Error>> {
+    Ok(token.parse::<VerifiedClaims<T>>()?.1)
 }
 
 impl CookieToken {
@@ -125,12 +121,15 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
 
 async fn authorize_from_bearer<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&str) -> Result<bool, StatusCode>,
+    F: Fn(&str) -> anyhow::Result<bool>,
 {
     let (mut parts, body) = request.into_parts();
     let token = match BearerToken::from_request_parts(&mut parts, &()).await {
         Ok(token) => token,
-        Err(_) => return response_unauthorized(),
+        Err(e) => {
+            tracing::warn!(?e, "No bearer token in header");
+            return response_unauthorized();
+        }
     };
     let request = Request::from_parts(parts, body);
     let authorized = f(&token.0);
@@ -140,19 +139,25 @@ where
                 return response_unauthorized();
             }
         }
-        Err(_) => return response_unauthorized(),
+        Err(e) => {
+            tracing::warn!(?e, "Failed to verify token");
+            return response_unauthorized();
+        }
     }
     next.run(request).await
 }
 
 async fn authorize_from_cookie<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&str) -> Result<bool, StatusCode>,
+    F: Fn(&str) -> anyhow::Result<bool>,
 {
     let (mut parts, body) = request.into_parts();
     let token = match CookieToken::from_request_parts(&mut parts, &()).await {
         Ok(token) => token,
-        Err(_) => return response_unauthorized(),
+        Err(e) => {
+            tracing::warn!(?e, "No bearer token in cookies");
+            return response_unauthorized();
+        }
     };
     let request = Request::from_parts(parts, body);
     let authorized = f(&token.0);
@@ -162,14 +167,17 @@ where
                 return response_unauthorized();
             }
         }
-        Err(_) => return response_unauthorized(),
+        Err(e) => {
+            tracing::warn!(?e, "Failed to verify token");
+            return response_unauthorized();
+        }
     }
     next.run(request).await
 }
 
 impl<F> AuthorizedBearer<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self {
         let wrapper = move |r, n| authorize_from_bearer(r, n, f.clone());
@@ -179,7 +187,7 @@ where
 
 impl<F> AuthorizedCookie<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&str) -> Result<bool, StatusCode> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self {
         let wrapper = move |r, n| authorize_from_cookie(r, n, f.clone());
