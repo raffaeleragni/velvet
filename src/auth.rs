@@ -156,13 +156,25 @@ where
     authorize_from_token_string(request, next, token.0, f).await
 }
 
+async fn otherlayer<F>(request: Request, next: Next, f: F) -> Response
+where
+    F: Fn() -> bool,
+{
+    if f() {
+        println!("a");
+    }
+    next.run(request).await
+}
+
 impl<T, F> AuthorizedBearer<T, F> for Router
 where
     F: Send + Sync + Clone + Fn(&T) -> bool + 'static,
     T: DeserializeOwned,
 {
     fn authorized_bearer(self, f: F) -> Self {
-        let ff = |a| true;
+        let ff = || true;
+        let wrapper = |r, n| otherlayer(r, n, ff.clone());
+        self.layer(middleware::from_fn(wrapper));
         let wrapper = |r, n| authorize_from_bearer(r, n, f.clone());
         self.layer(middleware::from_fn(wrapper))
     }
