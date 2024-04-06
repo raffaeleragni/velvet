@@ -81,8 +81,9 @@ where
             Ok(jar) => jar,
             Err(err) => match err {},
         };
-        let value = jar.get("token").ok_or(response_unauthorized())?;
-        Ok(Self(value.to_string()))
+        let value = jar.get("token").ok_or(response_unauthorized())?.value();
+        let value = value.to_string().trim().to_string();
+        Ok(Self(value))
     }
 }
 
