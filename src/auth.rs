@@ -9,6 +9,7 @@ use tokio::sync::OnceCell;
 
 static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
 pub async fn setup_jwt_key_from_env() {
+    dotenv::dotenv().ok();
     let key = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
     DECODING_KEY.get_or_init(|| async move { key }).await;
 }
