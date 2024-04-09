@@ -1,4 +1,4 @@
-use std::{env, error::Error, str::FromStr};
+pub mod jwt;
 
 use axum::{
     async_trait,
@@ -10,37 +10,13 @@ use axum::{
     Router,
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{encode, Header};
 use reqwest::header::AUTHORIZATION;
-use serde::{de::DeserializeOwned, Serialize};
-use tokio::sync::OnceCell;
-
-static JWT_DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
-static JWT_ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::const_new();
-
-pub enum JWT {
-    Secret,
-    JwkUrl,
-}
-
-impl JWT {
-    pub async fn setup(self) {
-        match self {
-            JWT::Secret => {
-                dotenv::dotenv().ok();
-                let deckey = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
-                let enckey = EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
-                JWT_DECODING_KEY.get_or_init(|| async move { deckey }).await;
-                JWT_ENCODING_KEY.get_or_init(|| async move { enckey }).await;
-            }
-            JWT::JwkUrl => todo!(),
-        }
-    }
-}
+use serde::Serialize;
+use std::error::Error;
 
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
-pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
 
 pub trait AuthorizedBearer<F>
 where
@@ -56,16 +32,12 @@ where
     fn authorized_cookie(self, f: F) -> Self;
 }
 
-pub fn claims_for<T: DeserializeOwned>(token: &str) -> anyhow::Result<T> {
-    Ok(token.parse::<VerifiedClaims<T>>()?.1)
-}
-
 impl CookieToken {
     pub fn set_from_claims<T: Serialize>(
         jar: CookieJar,
         claims: T,
     ) -> Result<CookieJar, Box<dyn Error>> {
-        let key = JWT_ENCODING_KEY
+        let key = jwt::JWT_ENCODING_KEY
             .get()
             .ok_or("ENCODING_KEY was not initialized")?;
         let token = encode(&Header::default(), &claims, key)?;
@@ -119,17 +91,6 @@ where
             Some(("Bearer", value)) => Ok(Self(value.to_string())),
             _ => Err(response_unauthorized()),
         }
-    }
-}
-
-impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
-    type Err = anyhow::Error;
-    fn from_str(token: &str) -> Result<Self, Self::Err> {
-        let key = JWT_DECODING_KEY
-            .get()
-            .ok_or(anyhow::Error::msg("DECODING_KEY was not initialized"))?;
-        let decoded = decode::<T>(token, key, &Validation::default())?;
-        Ok(VerifiedClaims(decoded.header, decoded.claims))
     }
 }
 
