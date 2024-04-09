@@ -15,14 +15,27 @@ use reqwest::header::AUTHORIZATION;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::OnceCell;
 
-static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
-static ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::const_new();
-pub async fn setup_jwt_key_from_env() {
-    dotenv::dotenv().ok();
-    let deckey = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
-    let enckey = EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
-    DECODING_KEY.get_or_init(|| async move { deckey }).await;
-    ENCODING_KEY.get_or_init(|| async move { enckey }).await;
+static JWT_DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
+static JWT_ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::const_new();
+
+pub enum JWT {
+    Secret,
+    JwkUrl,
+}
+
+impl JWT {
+    pub async fn setup(self) {
+        match self {
+            JWT::Secret => {
+                dotenv::dotenv().ok();
+                let deckey = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
+                let enckey = EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
+                JWT_DECODING_KEY.get_or_init(|| async move { deckey }).await;
+                JWT_ENCODING_KEY.get_or_init(|| async move { enckey }).await;
+            }
+            JWT::JwkUrl => todo!(),
+        }
+    }
 }
 
 pub struct CookieToken(pub String);
@@ -52,7 +65,7 @@ impl CookieToken {
         jar: CookieJar,
         claims: T,
     ) -> Result<CookieJar, Box<dyn Error>> {
-        let key = ENCODING_KEY
+        let key = JWT_ENCODING_KEY
             .get()
             .ok_or("ENCODING_KEY was not initialized")?;
         let token = encode(&Header::default(), &claims, key)?;
@@ -112,7 +125,7 @@ where
 impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
     type Err = anyhow::Error;
     fn from_str(token: &str) -> Result<Self, Self::Err> {
-        let key = DECODING_KEY
+        let key = JWT_DECODING_KEY
             .get()
             .ok_or(anyhow::Error::msg("DECODING_KEY was not initialized"))?;
         let decoded = decode::<T>(token, key, &Validation::default())?;
