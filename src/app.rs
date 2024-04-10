@@ -6,7 +6,16 @@ use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use std::env;
 use tokio::net::TcpListener;
 use tracing::info;
-use tracing_subscriber::fmt::format::{Format, JsonFields};
+use tracing_subscriber::{
+    filter::EnvFilter,
+    fmt::{
+        self,
+        format::{Format, JsonFields},
+        init,
+    },
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
 
 #[derive(Default)]
 pub struct App {
@@ -93,13 +102,20 @@ fn logger() {
         .map(|s| s.parse::<bool>().unwrap_or(false))
         .unwrap_or(false);
     if enabled {
-        tracing_subscriber::fmt()
-            .event_format(Format::default().json())
-            .fmt_fields(JsonFields::new())
+        tracing_subscriber::registry()
+            .with(
+                fmt::layer()
+                    .event_format(Format::default().json())
+                    .fmt_fields(JsonFields::new()),
+            )
+            .with(EnvFilter::from_default_env())
             .init();
     } else {
-        tracing_subscriber::fmt().init();
-    }
+        tracing_subscriber::registry()
+            .with(fmt::layer())
+            .with(EnvFilter::from_default_env())
+            .init();
+    };
 }
 
 fn prometheus(app: Router) -> Router {
