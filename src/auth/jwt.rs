@@ -93,7 +93,7 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
             }
             None => get_default_key()?,
         };
-        let decoded = decode::<T>(token, key, &Validation::default())?;
+        let decoded = decode::<T>(token, key, &Validation::new(header.alg))?;
         Ok(VerifiedClaims(decoded.header, decoded.claims))
     }
 }
