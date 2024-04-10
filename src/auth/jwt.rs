@@ -26,41 +26,39 @@ struct JWKResponse {
 }
 
 impl JWT {
-    pub async fn setup(self) {
+    pub async fn setup(self) -> anyhow::Result<()> {
         dotenv::dotenv().ok();
         match self {
             JWT::Secret => {
                 dotenv::dotenv().ok();
-                let deckey = DecodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
-                let enckey = EncodingKey::from_secret(env::var("JWT_SECRET").unwrap().as_ref());
+                let deckey = DecodingKey::from_secret(env::var("JWT_SECRET")?.as_ref());
+                let enckey = EncodingKey::from_secret(env::var("JWT_SECRET")?.as_ref());
                 JWT_DECODING_KEY.get_or_init(|| async move { deckey }).await;
                 JWT_ENCODING_KEY.get_or_init(|| async move { enckey }).await;
+                Ok(())
             }
             JWT::JwkUrl => {
-                let url = env::var("JWK_URL").unwrap();
+                let url = env::var("JWK_URL")?;
                 let jwk = crate::client::client()
                     .get(url)
                     .send()
-                    .await
-                    .unwrap()
+                    .await?
                     .json::<JWKResponse>()
-                    .await
-                    .unwrap();
+                    .await?;
                 let mut keys_map = HashMap::<String, DecodingKey>::new();
                 for k in jwk.keys {
-                    let Some(kid) = k.common.key_id.as_ref() else {
-                        tracing::warn!("Could not find key id on JWK response");
-                        continue;
-                    };
-                    let Ok(dk) = DecodingKey::from_jwk(&k) else {
-                        tracing::warn!(key_id = kid, "Could not create JWK instance");
-                        continue;
-                    };
+                    let kid = k
+                        .common
+                        .key_id
+                        .as_ref()
+                        .ok_or(anyhow::Error::msg("no kid on jwt response"))?;
+                    let dk = DecodingKey::from_jwk(&k)?;
                     keys_map.insert(kid.to_owned(), dk);
                 }
                 JWT_DECODING_KEYS_BY_ID
                     .get_or_init(|| async move { keys_map })
                     .await;
+                Ok(())
             }
         }
     }
