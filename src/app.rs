@@ -11,7 +11,6 @@ use tracing_subscriber::{
     fmt::{
         self,
         format::{Format, JsonFields},
-        init,
     },
     layer::SubscriberExt,
     util::SubscriberInitExt,

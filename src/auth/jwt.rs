@@ -53,6 +53,7 @@ impl JWT {
                         .as_ref()
                         .ok_or(anyhow::Error::msg("no kid on jwt response"))?;
                     let dk = DecodingKey::from_jwk(&k)?;
+                    tracing::debug!(kid, "key id loaded");
                     keys_map.insert(kid.to_owned(), dk);
                 }
                 JWT_DECODING_KEYS_BY_ID
@@ -80,7 +81,13 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
                 let map = JWT_DECODING_KEYS_BY_ID.get().ok_or(anyhow::Error::msg(
                     "JWT_DECODING_KEYS_BY_ID was not initialized",
                 ))?;
-                map.get(&kid).unwrap_or(get_default_key()?)
+                match map.get(&kid) {
+                    Some(key) => key,
+                    None => {
+                        tracing::debug!(kid, "key id not loaded");
+                        get_default_key()?
+                    }
+                }
             }
             None => get_default_key()?,
         };
