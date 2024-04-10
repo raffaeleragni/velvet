@@ -39,12 +39,14 @@ impl JWT {
             }
             JWT::JwkUrl => {
                 let url = env::var("JWK_URL")?;
+                tracing::debug!(url, "fetching JWK from url");
                 let jwk = crate::client::client()
                     .get(url)
                     .send()
                     .await?
                     .json::<JWKResponse>()
                     .await?;
+                tracing::debug!("fetched {} JWKs", jwk.keys.len());
                 let mut keys_map = HashMap::<String, DecodingKey>::new();
                 for k in jwk.keys {
                     let kid = k
