@@ -5,6 +5,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 pub async fn database() -> PgPool {
     // May not know if app is constructed before databse, so trigger dotenvs in both situations
     dotenv::dotenv().ok();
+    crate::app::logger();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
     let max_connections = env::var("DATABASE_MAX_CONNECTIONS")
         .ok()

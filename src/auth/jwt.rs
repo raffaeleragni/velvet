@@ -28,9 +28,9 @@ struct JWKResponse {
 impl JWT {
     pub async fn setup(self) -> anyhow::Result<()> {
         dotenv::dotenv().ok();
+        crate::app::logger();
         match self {
             JWT::Secret => {
-                dotenv::dotenv().ok();
                 let deckey = DecodingKey::from_secret(env::var("JWT_SECRET")?.as_ref());
                 let enckey = EncodingKey::from_secret(env::var("JWT_SECRET")?.as_ref());
                 JWT_DECODING_KEY.get_or_init(|| async move { deckey }).await;

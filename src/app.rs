@@ -25,6 +25,7 @@ impl App {
     pub fn new() -> Self {
         // May not know if app is constructed before databse, so trigger dotenvs in both situations
         dotenv::dotenv().ok();
+        logger();
         Self::default()
     }
 
@@ -69,7 +70,6 @@ async fn start(app: Router) -> anyhow::Result<()> {
         .unwrap_or(8080);
     let listener = TcpListener::bind(format!("{bind}:{port}")).await?;
 
-    logger();
     let _guard = sentry();
     let app = prometheus(app);
     let app = app.route("/status/liveness", get(|| async { "".into_response() }));
@@ -96,7 +96,7 @@ fn sentry() -> Option<sentry::ClientInitGuard> {
     None
 }
 
-fn logger() {
+pub(crate) fn logger() {
     let enabled: bool = env::var("STRUCTURED_LOGGING")
         .map(|s| s.parse::<bool>().unwrap_or(false))
         .unwrap_or(false);
