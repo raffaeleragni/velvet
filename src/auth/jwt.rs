@@ -45,7 +45,7 @@ impl JWT {
                 Ok(())
             }
             JWT::JwkUrls => {
-                let urls = env::var("JWK_URL")?;
+                let urls = env::var("JWK_URLS")?;
                 tracing::debug!(?urls, "fetching JWK from urls");
                 let mut keys_map = HashMap::<String, DecodingKey>::new();
                 for url in urls.split(',') {
