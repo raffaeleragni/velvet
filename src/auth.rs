@@ -10,7 +10,6 @@ use axum::{
     Router,
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
-use jsonwebtoken::{encode, Header};
 use reqwest::header::AUTHORIZATION;
 use serde::Serialize;
 use std::error::Error;
@@ -37,10 +36,7 @@ impl CookieToken {
         jar: CookieJar,
         claims: T,
     ) -> Result<CookieJar, Box<dyn Error>> {
-        let key = jwt::JWT_ENCODING_KEY
-            .get()
-            .ok_or("ENCODING_KEY was not initialized")?;
-        let token = encode(&Header::default(), &claims, key)?;
+        let token = jwt::token_from_claims(&claims)?;
         Ok(CookieToken::set(jar, token))
     }
 

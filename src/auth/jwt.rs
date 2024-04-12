@@ -1,7 +1,7 @@
-use std::{collections::HashMap, env, str::FromStr};
+use std::{collections::HashMap, env, error::Error, str::FromStr};
 
-use jsonwebtoken::{decode, decode_header, DecodingKey, EncodingKey, Header, Validation};
-use serde::{de::DeserializeOwned, Deserialize};
+use jsonwebtoken::{decode, decode_header, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::sync::OnceCell;
 
 pub struct VerifiedClaims<T: DeserializeOwned>(pub Header, pub T);
@@ -10,14 +10,21 @@ pub fn claims_for<T: DeserializeOwned>(token: &str) -> anyhow::Result<T> {
     Ok(token.parse::<VerifiedClaims<T>>()?.1)
 }
 
-pub(super) static JWT_DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
-pub(super) static JWT_ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::const_new();
-pub(super) static JWT_DECODING_KEYS_BY_ID: OnceCell<HashMap<String, DecodingKey>> =
-    OnceCell::const_new();
+pub(crate) fn token_from_claims<T: Serialize>(claims: &T) -> Result<String, Box<dyn Error>> {
+    let key = JWT_ENCODING_KEY
+        .get()
+        .ok_or("ENCODING_KEY was not initialized")?;
+    let token = encode(&Header::default(), claims, key)?;
+    Ok(token)
+}
+
+static JWT_DECODING_KEY: OnceCell<DecodingKey> = OnceCell::const_new();
+static JWT_ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::const_new();
+static JWT_DECODING_KEYS_BY_ID: OnceCell<HashMap<String, DecodingKey>> = OnceCell::const_new();
 
 pub enum JWT {
     Secret,
-    JwkUrl,
+    JwkUrls,
 }
 
 #[derive(Deserialize)]
@@ -37,26 +44,12 @@ impl JWT {
                 JWT_ENCODING_KEY.get_or_init(|| async move { enckey }).await;
                 Ok(())
             }
-            JWT::JwkUrl => {
-                let url = env::var("JWK_URL")?;
-                tracing::debug!(url, "fetching JWK from url");
-                let jwk = crate::client::client()
-                    .get(url)
-                    .send()
-                    .await?
-                    .json::<JWKResponse>()
-                    .await?;
-                tracing::debug!("fetched {} JWKs", jwk.keys.len());
+            JWT::JwkUrls => {
+                let urls = env::var("JWK_URL")?;
+                tracing::debug!(?urls, "fetching JWK from urls");
                 let mut keys_map = HashMap::<String, DecodingKey>::new();
-                for k in jwk.keys {
-                    let kid = k
-                        .common
-                        .key_id
-                        .as_ref()
-                        .ok_or(anyhow::Error::msg("no kid on jwt response"))?;
-                    let dk = DecodingKey::from_jwk(&k)?;
-                    tracing::debug!(kid, "key id loaded");
-                    keys_map.insert(kid.to_owned(), dk);
+                for url in urls.split(',') {
+                    load_jwk_from_url(url, &mut keys_map).await?;
                 }
                 JWT_DECODING_KEYS_BY_ID
                     .get_or_init(|| async move { keys_map })
@@ -65,6 +58,30 @@ impl JWT {
             }
         }
     }
+}
+
+async fn load_jwk_from_url(
+    url: &str,
+    keys_map: &mut HashMap<String, DecodingKey>,
+) -> Result<(), anyhow::Error> {
+    let jwk = crate::client::client()
+        .get(url)
+        .send()
+        .await?
+        .json::<JWKResponse>()
+        .await?;
+    tracing::debug!("fetched {} JWKs", jwk.keys.len());
+    for k in jwk.keys {
+        let kid = k
+            .common
+            .key_id
+            .as_ref()
+            .ok_or(anyhow::Error::msg("no kid on jwt response"))?;
+        let dk = DecodingKey::from_jwk(&k)?;
+        tracing::debug!(kid, "key id loaded");
+        keys_map.insert(kid.to_owned(), dk);
+    }
+    Ok(())
 }
 
 impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
