@@ -2,7 +2,7 @@ use std::env;
 
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-pub async fn database() -> PgPool {
+pub async fn postgres() -> PgPool {
     // May not know if app is constructed before databse, so trigger dotenvs in both situations
     dotenv::dotenv().ok();
     crate::app::logger();

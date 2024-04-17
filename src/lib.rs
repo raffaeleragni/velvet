@@ -15,7 +15,7 @@ pub mod prelude {
     pub use super::auth::BearerToken;
     pub use super::auth::CookieToken;
     pub use super::client::client;
-    pub use super::db::database;
+    pub use super::db::postgres;
     pub use super::errors::AppError;
     pub use super::errors::AppResult;
     pub use askama::Template;
