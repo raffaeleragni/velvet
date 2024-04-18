@@ -31,7 +31,7 @@ pub mod prelude {
     pub use reqwest::Client;
     pub use rust_embed::RustEmbed;
     pub use serde::{Deserialize, Serialize};
-    pub use sqlx::{query, query_as, Pool, Postgres};
+    pub use sqlx::{query, query_as, Pool, Postgres, Sqlite};
     pub use tracing::{debug, error, info, instrument, span, trace, warn, Level};
     pub use valuable::Valuable;
 }
