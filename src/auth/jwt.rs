@@ -110,7 +110,12 @@ impl<T: DeserializeOwned> FromStr for VerifiedClaims<T> {
             }
             None => get_default_key()?,
         };
-        let decoded = decode::<T>(token, key, &Validation::new(header.alg))?;
+        let mut validation = Validation::new(header.alg);
+        if let Ok(aud) = env::var("JWT_AUDIENCE") {
+            let auds = aud.as_str().split(',').collect::<Vec<&str>>();
+            validation.set_audience(&auds);
+        }
+        let decoded = decode::<T>(token, key, &validation)?;
         Ok(VerifiedClaims(decoded.header, decoded.claims))
     }
 }
