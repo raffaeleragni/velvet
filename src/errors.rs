@@ -4,29 +4,50 @@ use tracing::error;
 
 pub type AppResult<T> = Result<T, AppError>;
 
-pub struct AppError(anyhow::Error);
+pub struct AppError {
+    status: StatusCode,
+    error: anyhow::Error,
+}
 
 impl From<sqlx::Error> for AppError {
     fn from(value: sqlx::Error) -> Self {
-        Self(value.into())
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+        }
     }
 }
 
 impl From<reqwest::Error> for AppError {
     fn from(value: reqwest::Error) -> Self {
-        Self(value.into())
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+        }
     }
 }
 
 impl From<anyhow::Error> for AppError {
     fn from(value: anyhow::Error) -> Self {
-        Self(value)
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value,
+        }
+    }
+}
+
+impl From<StatusCode> for AppError {
+    fn from(status: StatusCode) -> Self {
+        Self {
+            status,
+            error: anyhow::Error::msg(status.canonical_reason().unwrap_or("")),
+        }
     }
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> askama_axum::Response {
-        error!("Error: {}", self.0);
-        (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()
+        error!("Error: {}", self.error);
+        (self.status, "Internal Server Error").into_response()
     }
 }
