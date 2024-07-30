@@ -15,9 +15,9 @@ pub mod prelude {
     pub use super::auth::BearerToken;
     pub use super::auth::CookieToken;
     pub use super::client::client;
+    pub use super::db::mysql;
     pub use super::db::postgres;
     pub use super::db::sqlite;
-    pub use super::db::mysql;
     pub use super::errors::AppError;
     pub use super::errors::AppResult;
     pub use askama::Template;
@@ -31,7 +31,7 @@ pub mod prelude {
     pub use reqwest::Client;
     pub use rust_embed::RustEmbed;
     pub use serde::{Deserialize, Serialize};
-    pub use sqlx::{query, query_as, Pool, Postgres, Sqlite, MySql};
+    pub use sqlx::{query, query_as, MySql, Pool, Postgres, Sqlite};
     pub use tracing::{debug, error, info, instrument, span, trace, warn, Level};
     pub use valuable::Valuable;
 }

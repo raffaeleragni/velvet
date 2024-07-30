@@ -1,6 +1,9 @@
 use std::env;
 
-use sqlx::{mysql::MySqlPoolOptions, postgres::PgPoolOptions, sqlite::SqlitePoolOptions, MySqlPool, PgPool, SqlitePool};
+use sqlx::{
+    mysql::MySqlPoolOptions, postgres::PgPoolOptions, sqlite::SqlitePoolOptions, MySqlPool, PgPool,
+    SqlitePool,
+};
 
 pub async fn postgres() -> PgPool {
     // May not know if app is constructed before databse, so trigger dotenvs in both situations
