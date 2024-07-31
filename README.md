@@ -90,3 +90,8 @@ async fn main() {
   - STRUCTURED_LOGGING: true|false (default false)
   - SENTRY_URL: url inclusive of key for sending telemtry to sentry
 
+## To setup TLS use env vars:
+
+  - TLS=true (or any string)
+  - TLS_PEM_CERT=cert.pem
+  - TLS_PEM_KEY=key.pem
