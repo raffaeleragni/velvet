@@ -1,6 +1,6 @@
 [package]
 name = "velvet-web"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Raffaele Ragni <raffaele.ragni@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -20,6 +20,7 @@ include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE"]
 anyhow = "1"
 axum = { version = "0.7", features = ["http2", "macros"] }
 axum-prometheus = "0.7"
+axum-server ={ version = "0.7.1", features = ["rustls", "tls-rustls", "tokio-rustls", "rustls-pemfile"] }
 askama = { version = "0.12", features = ["with-axum"] }
 askama_axum = "0.4"
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "sqlite", "mysql"] }

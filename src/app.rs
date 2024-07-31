@@ -1,9 +1,10 @@
 use askama_axum::IntoResponse;
 use axum::{routing::get, Extension, Router};
 use axum_prometheus::PrometheusMetricLayer;
+use axum_server::tls_rustls::RustlsConfig;
 use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
-use std::env;
+use std::{env, net::SocketAddr, str::FromStr};
 use tokio::net::TcpListener;
 use tower_http::compression::CompressionLayer;
 use tracing::info;
@@ -80,8 +81,7 @@ async fn start(app: Router) -> anyhow::Result<()> {
         .ok()
         .and_then(|s| s.parse::<u32>().ok())
         .unwrap_or(8080);
-    let listener = TcpListener::bind(format!("{bind}:{port}")).await?;
-
+    let addr = SocketAddr::from_str(format!("{bind}:{port}").as_str()).unwrap();
     let _guard = sentry();
     let app = prometheus(app);
     let app = app.route("/status/liveness", get(|| async { "".into_response() }));
@@ -89,8 +89,20 @@ async fn start(app: Router) -> anyhow::Result<()> {
         .layer(NewSentryLayer::new_from_top())
         .layer(SentryHttpLayer::with_transaction());
 
-    info!("Starting server on {bind}:{port}");
-    axum::serve(listener, app).await?;
+    if env::var("TLS").is_ok() {
+        let pem_cert = env::var("TLS_PEM_CERT")?;
+        let pem_key = env::var("TLS_PEM_KEY")?;
+        info!("Starting server on {bind}:{port} with TLS ON");
+        let tls_config = RustlsConfig::from_pem_file(pem_cert, pem_key)
+            .await
+            .unwrap();
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(app.into_make_service())
+            .await?
+    } else {
+        info!("Starting server on {bind}:{port}");
+        axum::serve(TcpListener::bind(addr).await?, app).await?;
+    }
     Ok(())
 }
 
