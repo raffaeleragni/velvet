@@ -5,6 +5,7 @@ use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use std::env;
 use tokio::net::TcpListener;
+use tower_http::compression::CompressionLayer;
 use tracing::info;
 use tracing_subscriber::{
     filter::EnvFilter,
@@ -58,6 +59,17 @@ impl App {
                 ),
             };
         }
+        app
+    }
+
+    pub fn enable_compression(self) -> Self {
+        let mut app = self;
+        let compression_layer: CompressionLayer = CompressionLayer::new()
+            .br(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true);
+        app.router = app.router.layer(compression_layer);
         app
     }
 }
