@@ -23,6 +23,9 @@ pub mod prelude {
     pub use askama::Template;
     pub use axum::extract::{Form, Json, Path};
     pub use axum::http::StatusCode;
+    pub use axum::http::HeaderMap;
+    pub use axum::http::HeaderName;
+    pub use axum::http::HeaderValue;
     pub use axum::response::Redirect;
     pub use axum::routing::{delete, get, patch, post, put};
     pub use axum::{Extension, Router};
