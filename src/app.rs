@@ -26,7 +26,7 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         // May not know if app is constructed before databse, so trigger dotenvs in both situations
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
         logger();
         Self::default()
     }

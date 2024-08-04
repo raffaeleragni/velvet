@@ -34,7 +34,7 @@ struct JWKResponse {
 
 impl JWT {
     pub async fn setup(self) -> anyhow::Result<()> {
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
         crate::app::logger();
         match self {
             JWT::Secret => {
