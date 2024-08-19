@@ -84,11 +84,10 @@ async fn main() {
 
   - SERVER_BIND: ip for which to listen on
   - SERVER_PORT: [number] port for which to listen on
-  - SENTRY_URL: full url for sending data to sentry, if present
   - DATABASE_URL: postgres://user:pass@host:port/database (if database used)
   - DATABASE_MAX_CONNECTIONS: [number] (default 1)
   - STRUCTURED_LOGGING: true|false (default false)
-  - SENTRY_URL: url inclusive of key for sending telemtry to sentry
+  - SENTRY_URL: url inclusive of key for sending telemetry to sentry
 
 ## To setup TLS use env vars:
 
