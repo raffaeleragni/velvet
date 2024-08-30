@@ -1,6 +1,6 @@
 [package]
 name = "velvet-web"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Raffaele Ragni <raffaele.ragni@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -14,6 +14,7 @@ categories = ["web-programming", "web-programming::http-server"]
 include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE"]
 
 [features]
+auth = ["dep:axum-extra", "dep:jsonwebtoken"]
 mysql = ["sqlx/mysql"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
@@ -21,25 +22,32 @@ sqlite = ["sqlx/sqlite"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
+
 axum = { version = "0.7", features = ["http2", "macros"] }
 axum-prometheus = "0.7"
 axum-server ={ version = "0.7.1", features = ["rustls", "tls-rustls", "tokio-rustls", "rustls-pemfile"] }
+
 askama = { version = "0.12", features = ["with-axum"] }
 askama_axum = "0.4"
+
 sqlx = { version = "0.8", features = ["runtime-tokio"] }
+
+dotenvy = "0.15"
+
+anyhow = "1"
 sentry = { version = "0.34", features = ["anyhow", "tower", "tracing"] }
 sentry-tower = { version = "0.34", features = ["axum", "http"] }
-rust-embed = { version = "8.5", features = ["axum", "tokio"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-serde = { version = "1", features = ["derive"] }
-dotenvy = "0.15"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
-mime_guess = "2.0"
-reqwest = { version = "0.12", features = ["gzip", "h3", "h3-quinn", "json", "multipart", "quinn", "stream"] }
 valuable = { version = "0.1.0", features = ["derive", "valuable-derive"] }
-axum-extra = { version = "0.9", features = ["cookie"] }
-jsonwebtoken = "9.3"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+reqwest = { version = "0.12", features = ["gzip", "h3", "h3-quinn", "json", "multipart", "quinn", "stream"] }
+rust-embed = { version = "8.5", features = ["axum", "tokio"] }
+mime_guess = "2.0"
 tower-http = { version = "0.5.2", features = ["compression-full", "decompression-full"] }
+
+axum-extra = { optional = true, version = "0.9", features = ["cookie"] }
+jsonwebtoken = { optional = true, version = "9.3" }
 
