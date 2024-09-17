@@ -4,6 +4,7 @@ use tracing::error;
 
 pub type AppResult<T> = Result<T, AppError>;
 
+#[derive(Debug)]
 pub struct AppError {
     status: StatusCode,
     error: anyhow::Error,
