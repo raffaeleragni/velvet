@@ -18,6 +18,14 @@ impl From<sqlx::Error> for AppError {
         }
     }
 }
+impl From<sqlx::migrate::MigrateError> for AppError {
+    fn from(value: sqlx::migrate::MigrateError) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+        }
+    }
+}
 
 impl From<reqwest::Error> for AppError {
     fn from(value: reqwest::Error) -> Self {
