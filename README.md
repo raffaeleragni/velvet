@@ -12,27 +12,23 @@ The templates and static files will be compiled in the binary and those director
 
 Items of the stack:
   - WEB: Axum
-  - DB: sqlx(postgres)
+  - DB: sqlx(postgres,sqlite,mysql)
   - Templating: Askama (folder templates/)
   - Telemetry: sentry supported
 
 ## Base route setup
 
 ```rust
-use velvet::prelude::*;
-
-fn index() -> &'static str {
-    "Hello world"
-}
+use velvet_web::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    App::new()
-        .router(Router::new().route("/", get(index)))
-        .start()
-        .await;
+    App::new().route("/", get(index)).start().await;
 }
 
+async fn index() -> impl IntoResponse {
+    "Hello World"
+}
 ```
 
 ## Add a database
@@ -40,26 +36,19 @@ async fn main() {
 ```rust
 use velvet::prelude::*;
 
-fn index(Extension(db): Extension<Pool<Postgres>>) -> &'static str {
+fn index(Extension(db): Extension<Pool<Sqlite>>) -> impl IntoResponse {
     let result = query_as!(String, "select 1").fetch_one(&db).await?;
     result
 }
 
 #[tokio::main]
 async fn main() {
-    let db = database().await;
-
-    App::new()
-        .router(Router::new().route("/", get(index))
-        .inject(db)
-        .start()
-        .await;
+    let db = sqlite().await;
+    App::new().route("/", get(index).inject(db).start().await;
 }
 ```
 
 ## Support for static files
-
-Example:
 
 ```rust
 use velvet::prelude::*;
@@ -70,23 +59,20 @@ async fn main() {
     #[folder = "statics"]
     struct S;
 
-    App::new()
-        .statics::<S>()
-        .start()
-        .await;
+    App::new().statics::<S>().start().await;
 }
 ```
 
-## Where to find...
+## Default routes already implemented
 
   - Status (no-op): http GET /status/liveness
   - Metrics: http GET /metrics/prometheus
 
 ## ENV vars
 
-  - SERVER_BIND: ip for which to listen on
-  - SERVER_PORT: [number] port for which to listen on
-  - DATABASE_URL: postgres://user:pass@host:port/database (if database used)
+  - SERVER_BIND: [default] default (0.0.0.0) bind network for which to listen on
+  - SERVER_PORT: [number] (default 8080) port for which to listen on
+  - DATABASE_URL: postgres://user:pass@host:port/database (if database used) or sqlite::memory:...
   - DATABASE_MAX_CONNECTIONS: [number] (default 1)
   - STRUCTURED_LOGGING: true|false (default false)
   - SENTRY_URL: url inclusive of key for sending telemetry to sentry
