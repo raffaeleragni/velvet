@@ -92,8 +92,8 @@ async fn start(app: Router) -> anyhow::Result<()> {
         .unwrap_or(8080);
     let addr = SocketAddr::from_str(format!("{bind}:{port}").as_str()).unwrap();
     let _guard = sentry();
-    let app = prometheus(app);
     let app = app.route("/status/liveness", get(|| async { "".into_response() }));
+    let app = prometheus(app);
     let app = app
         .layer(NewSentryLayer::new_from_top())
         .layer(SentryHttpLayer::with_transaction());
