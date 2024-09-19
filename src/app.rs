@@ -1,5 +1,8 @@
 use askama_axum::IntoResponse;
-use axum::{routing::get, Extension, Router};
+use axum::{
+    routing::{get, MethodRouter},
+    Extension, Router,
+};
 use axum_prometheus::PrometheusMetricLayer;
 use axum_server::tls_rustls::RustlsConfig;
 use rust_embed::RustEmbed;
@@ -71,6 +74,12 @@ impl App {
             .gzip(true)
             .zstd(true);
         app.router = app.router.layer(compression_layer);
+        app
+    }
+
+    pub fn route(self, path: &str, method_router: MethodRouter<()>) -> Self {
+        let mut app = self;
+        app.router = app.router.route(path, method_router);
         app
     }
 }
