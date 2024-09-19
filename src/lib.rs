@@ -25,7 +25,6 @@ pub mod prelude {
     pub use reqwest::Client;
     pub use rust_embed::RustEmbed;
     pub use serde::{Deserialize, Serialize};
-    pub use sqlx::{query, query_as, Pool};
     pub use tracing::{debug, error, info, instrument, span, trace, warn, Level};
     pub use valuable::Valuable;
 
@@ -41,6 +40,8 @@ pub mod prelude {
     pub use sqlx::Postgres;
     #[cfg(feature = "sqlite")]
     pub use sqlx::Sqlite;
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    pub use sqlx::{query, query_as, Pool};
 
     #[cfg(feature = "auth")]
     pub use super::auth::jwt::claims_for;
