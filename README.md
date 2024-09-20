@@ -37,6 +37,8 @@ async fn index() -> impl IntoResponse {
 
 ## Add a database
 
+Adding a `.env` file with `DATABASE_URL=sqlite::memory:`.
+
 ```rust
 use velvet::prelude::*;
 
