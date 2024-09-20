@@ -69,6 +69,33 @@ async fn index(Extension(client): Extension<Client>) -> AppResult<impl IntoRespo
 }
 ```
 
+## Check JWT token (from bearer or cookies)
+
+Adding a `.env` file with `JWT_SECRET=secret`.
+
+```rust
+use velvet_web::prelude::*;
+
+#[derive(Deserialize)]
+struct Claims {
+    role: String,
+}
+
+#[tokio::main]
+async fn main() -> AppResult<()> {
+    JWT::Secret.setup().await?;
+    let router = Router::new()
+        .route("/", get(index))
+        .authorized_bearer_claims(|claims: Claims| Ok(claims.role == "admin"));
+    App::new().router(router).start().await;
+    Ok(())
+}
+
+async fn index() -> AppResult<impl IntoResponse> {
+    Ok("Hello World")
+}
+```
+
 ## Support for static files
 
 ```rust
