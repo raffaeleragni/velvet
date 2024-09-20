@@ -37,9 +37,9 @@ async fn index() -> impl IntoResponse {
 ```rust
 use velvet::prelude::*;
 
-fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
-    let result = query_as!(String, "select 1").fetch_one(&db).await?;
-    Ok(result)
+async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
+    let res = sqlx::query!("pragma integrity_check").fetch_one(&db).await?;
+    Ok(res.integrity_check.unwrap_or("Bad check".to_string()))
 }
 
 #[tokio::main]
