@@ -45,12 +45,27 @@ use velvet::prelude::*;
 #[tokio::main]
 async fn main() {
     let db = sqlite().await;
-    App::new().route("/", get(index).inject(db).start().await;
+    App::new().route("/", get(index)).inject(db).start().await;
 }
 
 async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
     let res = sqlx::query!("pragma integrity_check").fetch_one(&db).await?;
     Ok(res.integrity_check.unwrap_or("Bad check".to_string()))
+}
+```
+
+## Use an HTTP Client
+
+```rust
+use velvet_web::prelude::*;
+
+#[tokio::main]
+async fn main() {
+    App::new().route("/", get(index)).inject(client()).start().await;
+}
+
+async fn index(Extension(client): Extension<Client>) -> AppResult<impl IntoResponse> {
+    Ok(client.get("https://en.wikipedia.org").send().await?.text().await?)
 }
 ```
 
