@@ -39,7 +39,7 @@ use velvet::prelude::*;
 
 fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
     let result = query_as!(String, "select 1").fetch_one(&db).await?;
-    result
+    Ok(result)
 }
 
 #[tokio::main]
