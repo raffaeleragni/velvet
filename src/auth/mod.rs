@@ -11,6 +11,7 @@ use axum::{
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use reqwest::header::AUTHORIZATION;
+use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::error::Error;
 
@@ -24,11 +25,27 @@ where
     fn authorized_bearer(self, f: F) -> Self;
 }
 
+pub trait AuthorizedBearerWithClaims<T, FT>
+where
+    T: DeserializeOwned,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+{
+    fn authorized_bearer_claims(self, f: FT) -> Self;
+}
+
 pub trait AuthorizedCookie<F>
 where
     F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self;
+}
+
+pub trait AuthorizedCookieWithClaims<T, FT>
+where
+    T: DeserializeOwned,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+{
+    fn authorized_cookie_claims(self, f: FT) -> Self;
 }
 
 impl CookieToken {
@@ -156,12 +173,36 @@ where
     }
 }
 
+impl<T, FT> AuthorizedBearerWithClaims<T, FT> for Router
+where
+    T: DeserializeOwned,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+{
+    fn authorized_bearer_claims(self, f: FT) -> Self {
+        let f2 = move |token: &str| f(jwt::claims_for::<T>(token)?);
+        let wrapper = move |r, n| authorize_from_bearer(r, n, f2.clone());
+        self.layer(middleware::from_fn(wrapper))
+    }
+}
+
 impl<F> AuthorizedCookie<F> for Router
 where
     F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
 {
     fn authorized_cookie(self, f: F) -> Self {
         let wrapper = move |r, n| authorize_from_cookie(r, n, f.clone());
+        self.layer(middleware::from_fn(wrapper))
+    }
+}
+
+impl<T, FT> AuthorizedCookieWithClaims<T, FT> for Router
+where
+    T: DeserializeOwned,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+{
+    fn authorized_cookie_claims(self, f: FT) -> Self {
+        let f2 = move |token: &str| f(jwt::claims_for::<T>(token)?);
+        let wrapper = move |r, n| authorize_from_cookie(r, n, f2.clone());
         self.layer(middleware::from_fn(wrapper))
     }
 }
