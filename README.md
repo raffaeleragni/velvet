@@ -16,6 +16,7 @@ Items of the stack:
   - DB: sqlx(postgres,sqlite,mysql)
   - Templating: Askama (folder templates/)
   - Telemetry: sentry supported
+  - Metrics: prometheus under /metrics/prometheus
 
 ## Base route setup
 
