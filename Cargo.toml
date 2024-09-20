@@ -1,6 +1,6 @@
 [package]
 name = "velvet-web"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Raffaele Ragni <raffaele.ragni@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -27,7 +27,7 @@ serde = { version = "1", features = ["derive"] }
 
 axum = { version = "0.7", features = ["http2", "macros"] }
 axum-prometheus = "0.7"
-axum-server ={ version = "0.7.1", features = ["rustls", "tls-rustls", "tokio-rustls", "rustls-pemfile"] }
+axum-server = { version = "0.7.1", features = ["rustls", "tls-rustls", "tokio-rustls", "rustls-pemfile"] }
 
 askama = { version = "0.12", features = ["with-axum"] }
 askama_axum = "0.4"
@@ -37,16 +37,16 @@ sqlx = { version = "0.8", features = ["runtime-tokio"] }
 dotenvy = "0.15"
 
 anyhow = "1"
-sentry = { version = "0.34", features = ["anyhow", "tower", "tracing"] }
+sentry = { version = "0.34", default-features = false, features = ["anyhow", "tower", "tracing", "rustls"] }
 sentry-tower = { version = "0.34", features = ["axum", "http"] }
 tracing = "0.1"
 valuable = { version = "0.1.0", features = ["derive", "valuable-derive"] }
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
-reqwest = { version = "0.12", features = ["gzip", "h3", "h3-quinn", "json", "multipart", "quinn", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "charset", "http2", "macos-system-configuration", "gzip", "brotli", "deflate", "zstd", "cookies", "json", "multipart", "stream"] }
 rust-embed = { version = "8.5", features = ["axum", "tokio"] }
 mime_guess = "2.0"
-tower-http = { version = "0.5.2", features = ["compression-full", "decompression-full"] }
+tower-http = { version = "0.6.0", features = ["compression-full", "decompression-full"] }
 
 axum-extra = { optional = true, version = "0.9", features = ["cookie"] }
 jsonwebtoken = { optional = true, version = "9.3" }
