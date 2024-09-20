@@ -66,17 +66,6 @@ impl App {
         app
     }
 
-    pub fn enable_compression(self) -> Self {
-        let mut app = self;
-        let compression_layer: CompressionLayer = CompressionLayer::new()
-            .br(true)
-            .deflate(true)
-            .gzip(true)
-            .zstd(true);
-        app.router = app.router.layer(compression_layer);
-        app
-    }
-
     pub fn route(self, path: &str, method_router: MethodRouter<()>) -> Self {
         let mut app = self;
         app.router = app.router.route(path, method_router);
@@ -94,9 +83,15 @@ async fn start(app: Router) -> anyhow::Result<()> {
     let _guard = sentry();
     let app = app.route("/status/liveness", get(|| async { "".into_response() }));
     let app = prometheus(app);
+    let compression_layer: CompressionLayer = CompressionLayer::new()
+        .br(true)
+        .deflate(true)
+        .gzip(true)
+        .zstd(true);
     let app = app
         .layer(NewSentryLayer::new_from_top())
-        .layer(SentryHttpLayer::with_transaction());
+        .layer(SentryHttpLayer::with_transaction())
+        .layer(compression_layer);
 
     if env::var("TLS").is_ok() {
         let pem_cert = env::var("TLS_PEM_CERT")?;
