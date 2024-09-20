@@ -9,7 +9,9 @@ For a reference/example of a project using it: https://github.com/raffaeleragni/
 
 ## Stack used
 
-The templates and static files will be compiled in the binary and those directories and won't be required at runtime.
+The askama templates, the static RustEmbed will all be compiled in the binary and not require them at runtime in the file system.
+
+The sqlx migrations are not embedded, and will be needed at file system at runtime.
 
 Items of the stack:
   - WEB: Axum
