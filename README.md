@@ -81,7 +81,7 @@ async fn index() -> AppResult<impl IntoResponse> {
 Adding a `.env` file with `DATABASE_URL=sqlite::memory:`, and enabling the feature `sqlite` in crate `velvet_web`.
 
 ```rust
-use velvet::prelude::*;
+use velvet_web::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -144,7 +144,7 @@ async fn index() -> AppResult<impl IntoResponse> {
 Need to include crate `rust_embed` as this uses proc macros.
 
 ```rust
-use velvet::prelude::*;
+use velvet_web::prelude::*;
 
 #[tokio::main]
 async fn main() {
