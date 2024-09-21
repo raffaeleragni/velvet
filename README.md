@@ -126,8 +126,7 @@ async fn main() {
 }
 
 async fn index() -> AppResult<impl IntoResponse> {
-    let counter = axum_prometheus::metrics::counter!("counter");
-    counter.increment(1);
+    axum_prometheus::metrics::counter!("counter").increment(1);
     Ok("Hello World")
 }
 ```
