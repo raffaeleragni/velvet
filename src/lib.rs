@@ -5,6 +5,7 @@ mod client;
 #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
 mod db;
 mod errors;
+mod metrics;
 
 #[macro_use]
 pub mod prelude {
@@ -12,6 +13,9 @@ pub mod prelude {
     pub use super::client::client;
     pub use super::errors::AppError;
     pub use super::errors::AppResult;
+    pub use super::metrics::metric_counter;
+    pub use super::metrics::metric_gauge;
+    pub use super::metrics::metric_histogram;
     pub use askama::Template;
     pub use axum::extract::{Form, Json, Path};
     pub use axum::http::HeaderMap;
