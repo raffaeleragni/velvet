@@ -36,7 +36,7 @@ async fn index() -> impl IntoResponse {
 
 ## Logging
 
-Default log level is `error`. To change the level use the env var `RUST_LOG=info|debug|...`.
+Default log level is `error`. To change the level use the env var `RUST_LOG=info|debug|warn`.
 
 To get structured logging (`json` logs) pass env var `STRUCTURED_LOGGING=true`.
 
