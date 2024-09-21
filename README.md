@@ -111,6 +111,25 @@ async fn main() {
 }
 ```
 
+## Add custom metrics
+
+Metrics available at `/metrics/prometheus`. The custom metrics will be visible as soon as the first use happens, but used within the App, not before.
+
+```rust
+use velvet_web::prelude::*;
+
+#[tokio::main]
+async fn main() {
+    App::new().route("/", get(index)).start().await;
+}
+
+async fn index() -> AppResult<impl IntoResponse> {
+    let counter = axum_prometheus::metrics::counter!("counter");
+    counter.increment(1);
+    Ok("Hello World")
+}
+```
+
 ## Default routes already implemented
 
   - Status (no-op): http GET /status/liveness
