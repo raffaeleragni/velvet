@@ -58,7 +58,7 @@ async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoRes
 
 Default log level is ERROR. To change the level use the env var `RUST_LOG=info|debug|...`.
 
-To get structured logging (json) pass env var S`TRUCTURED_LOGGING=true`.
+To get structured logging (json) pass env var `STRUCTURED_LOGGING=true`.
 
 ```rust
 use velvet_web::prelude::*;
