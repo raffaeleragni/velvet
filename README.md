@@ -54,6 +54,26 @@ async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoRes
 }
 ```
 
+## Logging
+
+Default log level is ERROR. To change the level use the env var `RUST_LOG=info|debug|...`.
+
+To get structured logging (json) pass env var S`TRUCTURED_LOGGING=true`.
+
+```rust
+use velvet_web::prelude::*;
+
+#[tokio::main]
+async fn main() {
+    App::new().route("/", get(index)).start().await;
+}
+
+async fn index() -> AppResult<impl IntoResponse> {
+    info!("Logging some info");
+    Ok("Hello World")
+}
+```
+
 ## Use an HTTP Client
 
 ```rust
