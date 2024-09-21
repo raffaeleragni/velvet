@@ -76,7 +76,7 @@ async fn index() -> AppResult<impl IntoResponse> {
 
 ## Add a database
 
-Adding a `.env` file with `DATABASE_URL=sqlite::memory:`.
+Adding a `.env` file with `DATABASE_URL=sqlite::memory:`, and enabling the feature `sqlite` in crate `velvet_web`.
 
 ```rust
 use velvet::prelude::*;
@@ -110,7 +110,7 @@ async fn index(Extension(client): Extension<Client>) -> AppResult<impl IntoRespo
 
 ## Check JWT token (from bearer or cookies)
 
-Adding a `.env` file with `JWT_SECRET=secret`.
+Adding a `.env` file with `JWT_SECRET=secret` and enabling the feature `auth` in `velvet_web`.
 
 JWK urls are also supported with a different enum initialization `JWT::JWK.setup().await?`.
 
