@@ -19,6 +19,8 @@ The askama templates and the static RustEmbed will be compiled in and not requir
 
 The sqlx migrations are not embedded, and will be needed at runtime.
 
+Proc macros cannot be transferred transitively, so crates need to be added again at project root in order to access them. For example `tokio` or `serde`.
+
 ## Base route setup
 
 ```rust
@@ -138,6 +140,8 @@ async fn index() -> AppResult<impl IntoResponse> {
 ```
 
 ## Support for static files
+
+Need to include crate `rust_embed` as this uses proc macros.
 
 ```rust
 use velvet::prelude::*;
