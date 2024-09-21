@@ -9,16 +9,15 @@ For a reference/example of a project using it: https://github.com/raffaeleragni/
 
 ## Stack used
 
-The askama templates, the static RustEmbed will all be compiled in the binary and not require them at runtime in the file system.
+  - WEB: `Axum`
+  - DB: `sqlx`(postgres,sqlite,mysql)
+  - Templating: `Askama` (folder templates/)
+  - Telemetry: `sentry` supported
+  - Metrics: `prometheus` under `/metrics/prometheus`
 
-The sqlx migrations are not embedded, and will be needed at file system at runtime.
+The askama templates and the static RustEmbed will be compiled in and not required at runtime.
 
-Items of the stack:
-  - WEB: Axum
-  - DB: sqlx(postgres,sqlite,mysql)
-  - Templating: Askama (folder templates/)
-  - Telemetry: sentry supported
-  - Metrics: prometheus under /metrics/prometheus
+The sqlx migrations are not embedded, and will be needed at runtime.
 
 ## Base route setup
 
@@ -32,6 +31,46 @@ async fn main() {
 
 async fn index() -> impl IntoResponse {
     "Hello World"
+}
+```
+
+## Logging
+
+Default log level is `error`. To change the level use the env var `RUST_LOG=info|debug|...`.
+
+To get structured logging (`json` logs) pass env var `STRUCTURED_LOGGING=true`.
+
+```rust
+use velvet_web::prelude::*;
+
+#[tokio::main]
+async fn main() {
+    App::new().route("/", get(index)).start().await;
+}
+
+async fn index() -> AppResult<impl IntoResponse> {
+    info!("Logging some info");
+    Ok("Hello World")
+}
+```
+
+## Add custom metrics
+
+Metrics available at `/metrics/prometheus`.
+The custom metrics will be visible as soon as the first use happens, but only when used after App startup, not before.
+For example, all the routes will work when used like this.
+
+```rust
+use velvet_web::prelude::*;
+
+#[tokio::main]
+async fn main() {
+    App::new().route("/", get(index)).start().await;
+}
+
+async fn index() -> AppResult<impl IntoResponse> {
+    metric_counter("counter").increment(1);
+    Ok("Hello World")
 }
 ```
 
@@ -54,26 +93,6 @@ async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoRes
 }
 ```
 
-## Logging
-
-Default log level is ERROR. To change the level use the env var `RUST_LOG=info|debug|...`.
-
-To get structured logging (json) pass env var `STRUCTURED_LOGGING=true`.
-
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    App::new().route("/", get(index)).start().await;
-}
-
-async fn index() -> AppResult<impl IntoResponse> {
-    info!("Logging some info");
-    Ok("Hello World")
-}
-```
-
 ## Use an HTTP Client
 
 ```rust
@@ -92,6 +111,8 @@ async fn index(Extension(client): Extension<Client>) -> AppResult<impl IntoRespo
 ## Check JWT token (from bearer or cookies)
 
 Adding a `.env` file with `JWT_SECRET=secret`.
+
+JWK urls are also supported with a different enum initialization `JWT::JWK.setup().await?`.
 
 ```rust
 use velvet_web::prelude::*;
@@ -128,24 +149,6 @@ async fn main() {
     struct S;
 
     App::new().statics::<S>().start().await;
-}
-```
-
-## Add custom metrics
-
-Metrics available at `/metrics/prometheus`. The custom metrics will be visible as soon as the first use happens, but used within the App, not before.
-
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    App::new().route("/", get(index)).start().await;
-}
-
-async fn index() -> AppResult<impl IntoResponse> {
-    metric_counter("counter").increment(1);
-    Ok("Hello World")
 }
 ```
 
