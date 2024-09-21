@@ -115,6 +115,8 @@ async fn main() {
 
 Metrics available at `/metrics/prometheus`. The custom metrics will be visible as soon as the first use happens, but used within the App, not before.
 
+Note: needs to add crate `axum_prometheus`.
+
 ```rust
 use velvet_web::prelude::*;
 
