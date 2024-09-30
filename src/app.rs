@@ -32,7 +32,11 @@ impl App {
         // May not know if app is constructed before databse, so trigger dotenvs in both situations
         dotenvy::dotenv().ok();
         logger();
-        Self::default()
+        let mut app = Self::default();
+        let r = Router::new().route("/status/liveness", get(|| async { "".into_response() }));
+        let r = prometheus(r);
+        app.router = r;
+        app
     }
 
     pub async fn start(self) {
@@ -86,21 +90,15 @@ impl IntoTransportLayer for App {
         self.router.into_http_transport_layer(builder)
     }
 
-    fn into_mock_transport_layer(self) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
+    fn into_mock_transport_layer(
+        self,
+    ) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
         self.router.into_mock_transport_layer()
     }
 }
 
 async fn start(app: Router) -> anyhow::Result<()> {
-    let bind = env::var("SERVER_BIND").unwrap_or("0.0.0.0".into());
-    let port = env::var("SERVER_PORT")
-        .ok()
-        .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(8080);
-    let addr = SocketAddr::from_str(format!("{bind}:{port}").as_str()).unwrap();
     let _guard = sentry();
-    let app = app.route("/status/liveness", get(|| async { "".into_response() }));
-    let app = prometheus(app);
     let compression_layer: CompressionLayer = CompressionLayer::new()
         .br(true)
         .deflate(true)
@@ -111,6 +109,12 @@ async fn start(app: Router) -> anyhow::Result<()> {
         .layer(SentryHttpLayer::with_transaction())
         .layer(compression_layer);
 
+    let bind = env::var("SERVER_BIND").unwrap_or("0.0.0.0".into());
+    let port = env::var("SERVER_PORT")
+        .ok()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(8080);
+    let addr = SocketAddr::from_str(format!("{bind}:{port}").as_str()).unwrap();
     if env::var("TLS").is_ok() {
         let pem_cert = env::var("TLS_PEM_CERT")?;
         let pem_key = env::var("TLS_PEM_KEY")?;
