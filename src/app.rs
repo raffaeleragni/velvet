@@ -5,6 +5,7 @@ use axum::{
 };
 use axum_prometheus::PrometheusMetricLayer;
 use axum_server::tls_rustls::RustlsConfig;
+use axum_test::{transport_layer::IntoTransportLayer, TestServer};
 use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use std::{env, net::SocketAddr, str::FromStr};
@@ -70,6 +71,23 @@ impl App {
         let mut app = self;
         app.router = app.router.route(path, method_router);
         app
+    }
+
+    pub fn as_test_server(self) -> TestServer {
+        TestServer::new(self).unwrap()
+    }
+}
+
+impl IntoTransportLayer for App {
+    fn into_http_transport_layer(
+        self,
+        builder: axum_test::transport_layer::TransportLayerBuilder,
+    ) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
+        self.router.into_http_transport_layer(builder)
+    }
+
+    fn into_mock_transport_layer(self) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
+        self.router.into_mock_transport_layer()
     }
 }
 

@@ -19,6 +19,9 @@ mysql = ["sqlx/mysql"]
 postgres = ["sqlx/postgres"]
 sqlite = ["sqlx/sqlite"]
 
+[dev.features]
+default = ["auth", "sqlite"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -50,4 +53,5 @@ tower-http = { version = "0.6.0", features = ["compression-full", "decompression
 
 axum-extra = { optional = true, version = "0.9", features = ["cookie"] }
 jsonwebtoken = { optional = true, version = "9.3" }
+axum-test = "16.1.0"
 
