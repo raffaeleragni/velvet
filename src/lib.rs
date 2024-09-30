@@ -57,9 +57,9 @@ pub mod prelude {
     #[cfg(feature = "auth")]
     pub use super::auth::AuthorizedBearer;
     #[cfg(feature = "auth")]
-    pub use super::auth::AuthorizedCookie;
-    #[cfg(feature = "auth")]
     pub use super::auth::AuthorizedBearerWithClaims;
+    #[cfg(feature = "auth")]
+    pub use super::auth::AuthorizedCookie;
     #[cfg(feature = "auth")]
     pub use super::auth::AuthorizedCookieWithClaims;
     #[cfg(feature = "auth")]

@@ -52,3 +52,12 @@ axum-extra = { optional = true, version = "0.9", features = ["cookie"] }
 jsonwebtoken = { optional = true, version = "9.3" }
 axum-test = "16.1.0"
 
+[[example]]
+name = "04_database"
+required-features = ["sqlite"]
+[[example]]
+name = "06_token"
+required-features = ["auth"]
+[[example]]
+name = "08_full"
+required-features = ["sqlite", "auth"]

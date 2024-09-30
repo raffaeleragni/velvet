@@ -3,7 +3,8 @@ pub async fn postgres() -> sqlx::PgPool {
     // May not know if app is constructed before databse, so trigger dotenvs in both situations
     dotenvy::dotenv().ok();
     crate::app::logger();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
     let max_connections = std::env::var("DATABASE_MAX_CONNECTIONS")
         .ok()
         .and_then(|s| s.parse::<u32>().ok())
@@ -19,7 +20,8 @@ pub async fn postgres() -> sqlx::PgPool {
 pub async fn sqlite() -> sqlx::SqlitePool {
     dotenvy::dotenv().ok();
     crate::app::logger();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
     let max_connections = std::env::var("DATABASE_MAX_CONNECTIONS")
         .ok()
         .and_then(|s| s.parse::<u32>().ok())
@@ -35,7 +37,8 @@ pub async fn sqlite() -> sqlx::SqlitePool {
 pub async fn mysql() -> sqlx::MySqlPool {
     dotenvy::dotenv().ok();
     crate::app::logger();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable not set");
     let max_connections = std::env::var("DATABASE_MAX_CONNECTIONS")
         .ok()
         .and_then(|s| s.parse::<u32>().ok())
