@@ -7,6 +7,10 @@ A layer of republish and small functions to remove some boilerplate on web stack
 
 For a reference/example of a project using it: https://github.com/raffaeleragni/veltes
 
+Other sample projects that use velvet:
+- https://github.com/raffaeleragni/forumfactor
+- https://github.com/raffaeleragni/norush
+
 ## Stack used
 
   - WEB: `Axum`
@@ -28,7 +32,7 @@ use velvet_web::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    App::new().route("/", get(index)).start().await;
+    App::new().route("/", get(index)).start().await.unwrap();
 }
 
 async fn index() -> impl IntoResponse {
