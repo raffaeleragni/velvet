@@ -12,7 +12,7 @@ async fn main() -> AppResult<()> {
     let router = Router::new()
         .route("/", get(index))
         .authorized_bearer_claims(|claims: Claims| Ok(claims.role == "admin"));
-    App::new().router(router).start().await;
+    App::new().router(router).start().await.unwrap();
     Ok(())
 }
 

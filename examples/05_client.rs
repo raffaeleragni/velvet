@@ -6,7 +6,8 @@ async fn main() {
         .route("/", get(index))
         .inject(client())
         .start()
-        .await;
+        .await
+        .unwrap();
 }
 
 async fn index(Extension(client): Extension<Client>) -> AppResult<impl IntoResponse> {

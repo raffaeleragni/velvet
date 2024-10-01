@@ -1,3 +1,5 @@
+use std::{env::VarError, io};
+
 use askama_axum::IntoResponse;
 use reqwest::StatusCode;
 use tracing::error;
@@ -8,6 +10,15 @@ pub type AppResult<T> = Result<T, AppError>;
 pub struct AppError {
     status: StatusCode,
     error: anyhow::Error,
+}
+
+impl From<io::Error> for AppError {
+    fn from(value: io::Error) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+        }
+    }
 }
 
 impl From<sqlx::Error> for AppError {
@@ -41,6 +52,15 @@ impl From<anyhow::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value,
+        }
+    }
+}
+
+impl From<VarError> for AppError {
+    fn from(value: VarError) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
         }
     }
 }

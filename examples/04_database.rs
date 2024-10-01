@@ -4,7 +4,12 @@ use velvet_web::prelude::*;
 #[tokio::main]
 async fn main() {
     let db = sqlite().await;
-    App::new().route("/", get(index)).inject(db).start().await;
+    App::new()
+        .route("/", get(index))
+        .inject(db)
+        .start()
+        .await
+        .unwrap();
 }
 
 async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {

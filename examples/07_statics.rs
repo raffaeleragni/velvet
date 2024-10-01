@@ -6,5 +6,5 @@ async fn main() {
     #[folder = "statics"]
     struct S;
 
-    App::new().statics::<S>().start().await;
+    App::new().statics::<S>().start().await.unwrap();
 }

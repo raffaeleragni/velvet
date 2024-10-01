@@ -22,7 +22,8 @@ async fn main() -> AppResult<()> {
         .inject(client())
         .statics::<S>()
         .start()
-        .await;
+        .await
+        .unwrap();
     Ok(())
 }
 

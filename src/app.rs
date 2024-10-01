@@ -22,25 +22,29 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 
+use crate::errors::AppResult;
+
 #[derive(Default)]
 pub struct App {
     router: Router,
 }
 
+pub struct BuiltApp {
+    app: App,
+    addr: SocketAddr,
+    tls: Option<RustlsConfig>,
+}
+
 impl App {
     pub fn new() -> Self {
-        // May not know if app is constructed before databse, so trigger dotenvs in both situations
+        // May not know if app is constructed before database, so trigger dotenvs in both situations
         dotenvy::dotenv().ok();
         logger();
-        let mut app = Self::default();
-        let r = Router::new().route("/status/liveness", get(|| async { "".into_response() }));
-        let r = prometheus(r);
-        app.router = r;
-        app
+        App::default()
     }
 
-    pub async fn start(self) {
-        start(self.router).await.unwrap()
+    pub async fn start(self) -> AppResult<()> {
+        self.build().await?.start().await
     }
 
     pub fn router(self, router: Router) -> Self {
@@ -77,8 +81,68 @@ impl App {
         app
     }
 
-    pub fn as_test_server(self) -> TestServer {
-        TestServer::new(self).unwrap()
+    pub async fn as_test_server(self) -> TestServer {
+        TestServer::new(self.build().await.unwrap()).unwrap()
+    }
+
+    async fn build(self) -> AppResult<BuiltApp> {
+        let _guard = sentry();
+        let compression_layer: CompressionLayer = CompressionLayer::new()
+            .br(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true);
+        let mut app = self;
+        app.router = app
+            .router
+            .route("/status/liveness", get(|| async { "".into_response() }));
+        app.router = prometheus(app.router);
+        app.router = app
+            .router
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryHttpLayer::with_transaction())
+            .layer(compression_layer);
+
+        let bind = env::var("SERVER_BIND").unwrap_or("0.0.0.0".into());
+        let port = env::var("SERVER_PORT")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(8080);
+        let addr = SocketAddr::from_str(format!("{bind}:{port}").as_str()).unwrap();
+        if env::var("TLS").is_ok() {
+            let pem_cert = env::var("TLS_PEM_CERT")?;
+            let pem_key = env::var("TLS_PEM_KEY")?;
+            let tls_config = RustlsConfig::from_pem_file(pem_cert, pem_key)
+                .await
+                .unwrap();
+            info!("Starting server on {bind}:{port} with TLS ON");
+            Ok(BuiltApp {
+                app,
+                addr,
+                tls: Some(tls_config),
+            })
+        } else {
+            info!("Starting server on {bind}:{port}");
+            Ok(BuiltApp {
+                app,
+                addr,
+                tls: None,
+            })
+        }
+    }
+}
+
+impl BuiltApp {
+    pub async fn start(self) -> AppResult<()> {
+        match self.tls {
+            Some(tls_config) => {
+                axum_server::bind_rustls(self.addr, tls_config)
+                    .serve(self.app.router.into_make_service())
+                    .await?
+            }
+            None => axum::serve(TcpListener::bind(self.addr).await?, self.app.router).await?,
+        }
+        Ok(())
     }
 }
 
@@ -97,39 +161,19 @@ impl IntoTransportLayer for App {
     }
 }
 
-async fn start(app: Router) -> anyhow::Result<()> {
-    let _guard = sentry();
-    let compression_layer: CompressionLayer = CompressionLayer::new()
-        .br(true)
-        .deflate(true)
-        .gzip(true)
-        .zstd(true);
-    let app = app
-        .layer(NewSentryLayer::new_from_top())
-        .layer(SentryHttpLayer::with_transaction())
-        .layer(compression_layer);
-
-    let bind = env::var("SERVER_BIND").unwrap_or("0.0.0.0".into());
-    let port = env::var("SERVER_PORT")
-        .ok()
-        .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(8080);
-    let addr = SocketAddr::from_str(format!("{bind}:{port}").as_str()).unwrap();
-    if env::var("TLS").is_ok() {
-        let pem_cert = env::var("TLS_PEM_CERT")?;
-        let pem_key = env::var("TLS_PEM_KEY")?;
-        info!("Starting server on {bind}:{port} with TLS ON");
-        let tls_config = RustlsConfig::from_pem_file(pem_cert, pem_key)
-            .await
-            .unwrap();
-        axum_server::bind_rustls(addr, tls_config)
-            .serve(app.into_make_service())
-            .await?
-    } else {
-        info!("Starting server on {bind}:{port}");
-        axum::serve(TcpListener::bind(addr).await?, app).await?;
+impl IntoTransportLayer for BuiltApp {
+    fn into_http_transport_layer(
+        self,
+        builder: axum_test::transport_layer::TransportLayerBuilder,
+    ) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
+        self.app.router.into_http_transport_layer(builder)
     }
-    Ok(())
+
+    fn into_mock_transport_layer(
+        self,
+    ) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
+        self.app.router.into_mock_transport_layer()
+    }
 }
 
 fn sentry() -> Option<sentry::ClientInitGuard> {
