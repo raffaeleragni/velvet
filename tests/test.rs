@@ -13,6 +13,25 @@ async fn test() -> AppResult<()> {
         .await
         .text()
         .contains("axum_http_requests"));
+    Ok(())
+}
 
+#[tokio::test]
+async fn test_custom_metrics() -> AppResult<()> {
+    let server = App::new()
+        .route(
+            "/",
+            get(|| async {
+                metric_counter("test_metric_counter").increment(1);
+            }),
+        )
+        .as_test_server()
+        .await;
+    server.get("/").await;
+    assert!(server
+        .get("/metrics/prometheus")
+        .await
+        .text()
+        .contains("test_metric_counter"));
     Ok(())
 }
