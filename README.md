@@ -42,19 +42,7 @@ Default log level is `error`. To change the level use the env var `RUST_LOG=info
 
 To get structured logging (`json` logs) pass env var `STRUCTURED_LOGGING=true`.
 
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    App::new().route("/", get(index)).start().await;
-}
-
-async fn index() -> AppResult<impl IntoResponse> {
-    info!("Logging some info");
-    Ok("Hello World")
-}
-```
+[example](examples/02_logging.rs)
 
 ## Add custom metrics
 
@@ -62,53 +50,17 @@ Metrics available at `/metrics/prometheus`.
 The custom metrics will be visible as soon as the first use happens, but only when used after App startup, not before.
 For example, all the routes will work when used like this.
 
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    App::new().route("/", get(index)).start().await;
-}
-
-async fn index() -> AppResult<impl IntoResponse> {
-    metric_counter("counter").increment(1);
-    Ok("Hello World")
-}
-```
+[example](examples/03_metrics.rs)
 
 ## Add a database
 
 Adding a `.env` file with `DATABASE_URL=sqlite::memory:`, and enabling the feature `sqlite` in crate `velvet_web`.
 
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    let db = sqlite().await;
-    App::new().route("/", get(index)).inject(db).start().await;
-}
-
-async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
-    let res = sqlx::query!("pragma integrity_check").fetch_one(&db).await?;
-    Ok(res.integrity_check.unwrap_or("Bad check".to_string()))
-}
-```
+[example](examples/04_database.rs)
 
 ## Use an HTTP Client
 
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    App::new().route("/", get(index)).inject(client()).start().await;
-}
-
-async fn index(Extension(client): Extension<Client>) -> AppResult<impl IntoResponse> {
-    Ok(client.get("https://en.wikipedia.org").send().await?.text().await?)
-}
-```
+[example](examples/05_client.rs)
 
 ## Check JWT token (from bearer or cookies)
 
@@ -116,126 +68,23 @@ Adding a `.env` file with `JWT_SECRET=secret` and enabling the feature `auth` in
 
 JWK urls are also supported with a different enum initialization `JWT::JWK.setup().await?`.
 
-```rust
-use velvet_web::prelude::*;
-
-#[derive(Deserialize)]
-struct Claims {
-    role: String,
-}
-
-#[tokio::main]
-async fn main() -> AppResult<()> {
-    JWT::Secret.setup().await?;
-    let router = Router::new()
-        .route("/", get(index))
-        .authorized_bearer_claims(|claims: Claims| Ok(claims.role == "admin"));
-    App::new().router(router).start().await;
-    Ok(())
-}
-
-async fn index() -> AppResult<impl IntoResponse> {
-    Ok("Hello World")
-}
-```
+[example](examples/06_token.rs)
 
 ## Support for static files
 
 Need to include crate `rust_embed` as this uses proc macros.
 
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() {
-    #[derive(RustEmbed)]
-    #[folder = "statics"]
-    struct S;
-
-    App::new().statics::<S>().start().await;
-}
-```
+[example](examples/07_statics.rs)
 
 ## A more complete example
 
 Using also Askama templates, and JWT through cookie setting.
 
-```rust
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use velvet_web::prelude::*;
-
-#[tokio::main]
-async fn main() -> AppResult<()> {
-    #[derive(RustEmbed)]
-    #[folder = "statics"]
-    struct S;
-    JWT::Secret.setup().await?;
-    let db = sqlite().await;
-    sqlx::migrate!().run(&db).await?;
-
-    let router = Router::new()
-        .route("/", get(index))
-        .authorized_cookie_claims(|claims: Claims| Ok(claims.role == "user"))
-        .route("/login", get(login));
-    App::new()
-        .router(router)
-        .inject(db)
-        .inject(client())
-        .statics::<S>()
-        .start()
-        .await;
-    Ok(())
-}
-
-#[derive(Serialize, Deserialize)]
-struct Claims {
-    exp: u64,
-    role: String,
-}
-
-async fn login(jar: CookieJar) -> AppResult<(CookieJar, Redirect)> {
-    let jar = CookieToken::set_from_claims(
-        jar,
-        Claims {
-            exp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs()
-                + 3600,
-            role: "user".to_string(),
-        },
-    )
-    .map_err(|_| StatusCode::UNPROCESSABLE_ENTITY)?;
-    Ok((jar, Redirect::to("/")))
-}
-
-#[derive(Template)]
-#[template(path = "index.html")]
-struct Index;
-
-async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
-    let _ = query!("pragma integrity_check")
-        .fetch_one(&db)
-        .await?
-        .integrity_check;
-    Ok(Index {})
-}
-```
+[example](examples/08_full.rs)
 
 ## Testing routes
 
-```rust
-use velvet_web::prelude::*;
-
-#[tokio::test]
-async fn test() {
-    let app = App::new().route("/", get(|| async { "result" }));
-    let server = app.as_test_server().await;
-    let response = server.get("/").await.text();
-    assert_eq!(response, "result");
-}
-```
+[example](examples/09_testing.rs)
 
 ## Default routes already implemented
 
