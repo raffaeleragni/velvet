@@ -223,6 +223,20 @@ async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoRes
 }
 ```
 
+## Testing routes
+
+```rust
+use velvet_web::prelude::*;
+
+#[tokio::test]
+async fn test() {
+    let app = App::new().route("/", get(|| async { "result" }));
+    let server = app.as_test_server().await;
+    let response = server.get("/").await.text();
+    assert_eq!(response, "result");
+}
+```
+
 ## Default routes already implemented
 
   - Status (no-op): http GET /status/liveness
