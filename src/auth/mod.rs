@@ -171,7 +171,7 @@ where
         Ok(token) => token,
         Err(e) => {
             tracing::debug!(?e, "No bearer token in cookies");
-            return response_unauthorized();
+            return Redirect::to(redirect).into_response();
         }
     };
     let request = Request::from_parts(parts, body);
