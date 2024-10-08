@@ -11,7 +11,7 @@ async fn main() -> AppResult<()> {
     JWT::Secret.setup().await?;
     let router = Router::new()
         .route("/", get(index))
-        .authorized_bearer_claims(|claims: Claims| Ok(claims.role == "admin"));
+        .authorized_bearer_claims(|claims: Claims| Ok((claims.role == "admin").into()));
     App::new().router(router).start().await.unwrap();
     Ok(())
 }

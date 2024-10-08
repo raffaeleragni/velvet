@@ -1,6 +1,6 @@
 [package]
 name = "velvet-web"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors = ["Raffaele Ragni <raffaele.ragni@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -14,6 +14,7 @@ categories = ["web-programming", "web-programming::http-server"]
 include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE"]
 
 [features]
+login = ["auth", "dep:argon2", "dep:futures-core"]
 auth = ["dep:axum-extra", "dep:jsonwebtoken"]
 mysql = ["sqlx/mysql"]
 postgres = ["sqlx/postgres"]
@@ -53,6 +54,9 @@ jsonwebtoken = { optional = true, version = "9.3" }
 axum-test = "16.1.0"
 serial_test = "3.1.1"
 
+argon2 = { version = "0.5.3", optional = true, features = ["std"] }
+futures-core = { version = "0.3.31", optional = true }
+
 [[example]]
 name = "04_database"
 required-features = ["sqlite"]
@@ -62,3 +66,6 @@ required-features = ["auth"]
 [[example]]
 name = "08_full"
 required-features = ["sqlite", "auth"]
+[[example]]
+name = "10_login"
+required-features = ["sqlite", "auth", "login"]

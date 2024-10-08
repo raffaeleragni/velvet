@@ -1,4 +1,6 @@
 pub mod jwt;
+#[cfg(feature = "login")]
+pub mod login;
 
 use axum::{
     async_trait,
@@ -6,7 +8,8 @@ use axum::{
     extract::{FromRequestParts, Request},
     http::request::Parts,
     middleware::{self, Next},
-    response::Response,
+    response::IntoResponse,
+    response::{Redirect, Response},
     Router,
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
@@ -18,9 +21,24 @@ use std::error::Error;
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
 
+pub enum AuthResult {
+    OK,
+    Unauthorized,
+    Redirect(String),
+}
+
+impl From<bool> for AuthResult {
+    fn from(value: bool) -> Self {
+        if value {
+            return AuthResult::OK;
+        }
+        AuthResult::Unauthorized
+    }
+}
+
 pub trait AuthorizedBearer<F>
 where
-    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<AuthResult> + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self;
 }
@@ -28,24 +46,24 @@ where
 pub trait AuthorizedBearerWithClaims<T, FT>
 where
     T: DeserializeOwned,
-    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<AuthResult> + 'static,
 {
     fn authorized_bearer_claims(self, f: FT) -> Self;
 }
 
 pub trait AuthorizedCookie<F>
 where
-    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie(self, f: F) -> Self;
+    fn authorized_cookie(self, redirect: &'static str, f: F) -> Self;
 }
 
 pub trait AuthorizedCookieWithClaims<T, FT>
 where
     T: DeserializeOwned,
-    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie_claims(self, f: FT) -> Self;
+    fn authorized_cookie_claims(self, redirect: &'static str, f: FT) -> Self;
 }
 
 impl CookieToken {
@@ -64,6 +82,10 @@ impl CookieToken {
             .same_site(axum_extra::extract::cookie::SameSite::Lax)
             .build();
         jar.add(c)
+    }
+
+    pub fn remove(jar: CookieJar) -> CookieJar {
+        jar.remove(Cookie::build("token"))
     }
 }
 
@@ -109,7 +131,7 @@ where
 
 async fn authorize_from_bearer<F>(request: Request, next: Next, f: F) -> Response
 where
-    F: Fn(&str) -> anyhow::Result<bool>,
+    F: Fn(&str) -> anyhow::Result<AuthResult>,
 {
     let (mut parts, body) = request.into_parts();
     let token = match BearerToken::from_request_parts(&mut parts, &()).await {
@@ -122,11 +144,11 @@ where
     let request = Request::from_parts(parts, body);
     let authorized = f(&token.0);
     match authorized {
-        Ok(authorized) => {
-            if !authorized {
-                return response_unauthorized();
-            }
-        }
+        Ok(authorized) => match authorized {
+            AuthResult::Unauthorized => return response_unauthorized(),
+            AuthResult::Redirect(target) => return Redirect::to(target.as_str()).into_response(),
+            AuthResult::OK => (),
+        },
         Err(e) => {
             tracing::debug!(?e, "Failed to verify token");
             return response_unauthorized();
@@ -135,9 +157,14 @@ where
     next.run(request).await
 }
 
-async fn authorize_from_cookie<F>(request: Request, next: Next, f: F) -> Response
+async fn authorize_from_cookie<F>(
+    request: Request,
+    next: Next,
+    redirect: &'static str,
+    f: F,
+) -> Response
 where
-    F: Fn(&str) -> anyhow::Result<bool>,
+    F: Fn(&str) -> anyhow::Result<AuthResult>,
 {
     let (mut parts, body) = request.into_parts();
     let token = match CookieToken::from_request_parts(&mut parts, &()).await {
@@ -150,14 +177,14 @@ where
     let request = Request::from_parts(parts, body);
     let authorized = f(&token.0);
     match authorized {
-        Ok(authorized) => {
-            if !authorized {
-                return response_unauthorized();
-            }
-        }
+        Ok(authorized) => match authorized {
+            AuthResult::Unauthorized => return Redirect::to(redirect).into_response(),
+            AuthResult::Redirect(target) => return Redirect::to(target.as_str()).into_response(),
+            AuthResult::OK => (),
+        },
         Err(e) => {
             tracing::debug!(?e, "Failed to verify token");
-            return response_unauthorized();
+            return Redirect::to(redirect).into_response();
         }
     }
     next.run(request).await
@@ -165,7 +192,7 @@ where
 
 impl<F> AuthorizedBearer<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<AuthResult> + 'static,
 {
     fn authorized_bearer(self, f: F) -> Self {
         let wrapper = move |r, n| authorize_from_bearer(r, n, f.clone());
@@ -176,7 +203,7 @@ where
 impl<T, FT> AuthorizedBearerWithClaims<T, FT> for Router
 where
     T: DeserializeOwned,
-    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<AuthResult> + 'static,
 {
     fn authorized_bearer_claims(self, f: FT) -> Self {
         let f2 = move |token: &str| f(jwt::claims_for::<T>(token)?);
@@ -187,10 +214,10 @@ where
 
 impl<F> AuthorizedCookie<F> for Router
 where
-    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<bool> + 'static,
+    F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie(self, f: F) -> Self {
-        let wrapper = move |r, n| authorize_from_cookie(r, n, f.clone());
+    fn authorized_cookie(self, redirect: &'static str, f: F) -> Self {
+        let wrapper = move |r, n| authorize_from_cookie(r, n, redirect, f.clone());
         self.layer(middleware::from_fn(wrapper))
     }
 }
@@ -198,11 +225,11 @@ where
 impl<T, FT> AuthorizedCookieWithClaims<T, FT> for Router
 where
     T: DeserializeOwned,
-    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<bool> + 'static,
+    FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie_claims(self, f: FT) -> Self {
+    fn authorized_cookie_claims(self, redirect: &'static str, f: FT) -> Self {
         let f2 = move |token: &str| f(jwt::claims_for::<T>(token)?);
-        let wrapper = move |r, n| authorize_from_cookie(r, n, f2.clone());
+        let wrapper = move |r, n| authorize_from_cookie(r, n, redirect, f2.clone());
         self.layer(middleware::from_fn(wrapper))
     }
 }

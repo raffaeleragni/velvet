@@ -74,6 +74,16 @@ impl From<StatusCode> for AppError {
     }
 }
 
+#[cfg(feature = "login")]
+impl From<argon2::password_hash::Error> for AppError {
+    fn from(error: argon2::password_hash::Error) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: error.into(),
+        }
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> askama_axum::Response {
         error!("Error: {}", self.error);

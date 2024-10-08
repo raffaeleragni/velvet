@@ -1,4 +1,5 @@
 #![cfg(all(feature = "sqlite", feature = "auth"))]
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use velvet_web::prelude::*;
@@ -14,7 +15,10 @@ async fn main() -> AppResult<()> {
 
     let router = Router::new()
         .route("/", get(index))
-        .authorized_cookie_claims(|claims: Claims| Ok(claims.role == "user"))
+        .authorized_cookie_claims(
+            "/login",
+            |claims: Claims| Ok((claims.role == "user").into()),
+        )
         .route("/login", get(login));
     App::new()
         .router(router)

@@ -55,6 +55,8 @@ pub mod prelude {
     #[cfg(feature = "auth")]
     pub use super::auth::jwt::JWT;
     #[cfg(feature = "auth")]
+    pub use super::auth::AuthResult;
+    #[cfg(feature = "auth")]
     pub use super::auth::AuthorizedBearer;
     #[cfg(feature = "auth")]
     pub use super::auth::AuthorizedBearerWithClaims;
@@ -70,4 +72,23 @@ pub mod prelude {
     pub use axum_extra::extract::CookieJar;
     #[cfg(feature = "auth")]
     pub use jsonwebtoken::DecodingKey;
+
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    #[cfg(feature = "login")]
+    pub use super::auth::login::login_cookie;
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    #[cfg(feature = "login")]
+    pub use super::auth::login::login_setup;
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    #[cfg(feature = "login")]
+    pub use super::auth::login::login_token;
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    #[cfg(feature = "login")]
+    pub use super::auth::login::logout_cookie;
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    #[cfg(feature = "login")]
+    pub use super::auth::login::register_user;
+    #[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
+    #[cfg(feature = "login")]
+    pub use super::auth::login::register_user_confirm;
 }
