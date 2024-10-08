@@ -2,18 +2,29 @@
 
 use velvet_web::prelude::*;
 
+#[derive(Deserialize)]
+struct Claims;
+
 #[tokio::main]
 async fn main() -> AppResult<()> {
     let db = sqlite().await;
     sqlx::migrate!().run(&db).await?;
+    JWT::Secret.setup().await?;
     login_setup(&db).await?;
     let router = Router::new()
+        .route("/", get(index))
+        // everything above this authorized method will require auth
+        .authorized_cookie_claims("/login", |_: Claims| Ok(AuthResult::OK))
         .route("/register", get(register))
         .route("/confirm/:user/:code", get(confirm))
         .route("/login", get(login))
         .route("/logout", get(logout));
     App::new().router(router).inject(db).start().await.unwrap();
     Ok(())
+}
+
+async fn index() -> impl IntoResponse {
+    "Hello World"
 }
 
 #[derive(Deserialize)]

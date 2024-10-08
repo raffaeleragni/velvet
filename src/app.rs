@@ -85,6 +85,11 @@ impl App {
         TestServer::new(self.build().await.unwrap()).unwrap()
     }
 
+    #[cfg(feature = "login")]
+    pub fn default_auth_flow(self) -> Self {
+        self
+    }
+
     async fn build(self) -> AppResult<BuiltApp> {
         let _guard = sentry();
         let compression_layer: CompressionLayer = CompressionLayer::new()
