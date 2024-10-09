@@ -1,6 +1,6 @@
 use std::{env::VarError, io};
 
-use askama_axum::IntoResponse;
+use axum::{body::Body, http::Response, response::{IntoResponse, Redirect}};
 use reqwest::StatusCode;
 use tracing::error;
 
@@ -10,6 +10,17 @@ pub type AppResult<T> = Result<T, AppError>;
 pub struct AppError {
     status: StatusCode,
     error: anyhow::Error,
+    redirect: Option<Redirect>,
+}
+
+impl From<Redirect> for AppError {
+    fn from(redirect: Redirect) -> Self {
+        Self {
+            status: StatusCode::PERMANENT_REDIRECT,
+            error: anyhow::anyhow!("None"),
+            redirect: Some(redirect)
+        }
+    }
 }
 
 impl From<io::Error> for AppError {
@@ -17,6 +28,7 @@ impl From<io::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
+            redirect: None
         }
     }
 }
@@ -26,6 +38,7 @@ impl From<sqlx::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
+            redirect: None
         }
     }
 }
@@ -34,6 +47,7 @@ impl From<sqlx::migrate::MigrateError> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
+            redirect: None
         }
     }
 }
@@ -43,6 +57,7 @@ impl From<reqwest::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
+            redirect: None
         }
     }
 }
@@ -52,6 +67,7 @@ impl From<anyhow::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value,
+            redirect: None
         }
     }
 }
@@ -61,6 +77,7 @@ impl From<VarError> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
+            redirect: None
         }
     }
 }
@@ -70,6 +87,7 @@ impl From<StatusCode> for AppError {
         Self {
             status,
             error: anyhow::Error::msg(status.canonical_reason().unwrap_or("")),
+            redirect: None
         }
     }
 }
@@ -80,13 +98,17 @@ impl From<argon2::password_hash::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: error.into(),
+            redirect: None
         }
     }
 }
 
 impl IntoResponse for AppError {
-    fn into_response(self) -> askama_axum::Response {
-        error!("Error: {}", self.error);
-        (self.status, "Internal Server Error").into_response()
+    fn into_response(self) -> Response<Body> {
+        if let Some(r) = self.redirect {
+            return r.into_response();
+        }
+        error!("Status: {}, Error: {}", self.status, self.error);
+        (self.status, "Error").into_response()
     }
 }
