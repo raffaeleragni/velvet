@@ -90,6 +90,10 @@ Using also Askama templates, and JWT through cookie setting.
 
 [example](examples/09_testing.rs)
 
+## Embedded login(and registration) flow
+
+[example](examples/10_login.rs)
+
 ## Default routes already implemented
 
   - Status (no-op): http GET /status/liveness
