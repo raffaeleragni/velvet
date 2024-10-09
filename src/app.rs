@@ -8,7 +8,6 @@ use axum_server::tls_rustls::RustlsConfig;
 use axum_test::{transport_layer::IntoTransportLayer, TestServer};
 use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
-use sqlx::Pool;
 use std::{env, net::SocketAddr, str::FromStr};
 use tokio::net::TcpListener;
 use tower_http::compression::CompressionLayer;
@@ -26,13 +25,13 @@ use tracing_subscriber::{
 use crate::errors::AppResult;
 
 #[cfg(feature = "sqlite")]
-type DB = Pool<sqlx::Sqlite>;
+type DB = sqlx::Pool<sqlx::Sqlite>;
 
 #[cfg(feature = "mysql")]
-type DB = Pool<sqlx::Mysql>;
+type DB = sqlx::Pool<sqlx::Mysql>;
 
 #[cfg(feature = "postgres")]
-type DB = Pool<sqlx::Postgres>;
+type DB = sqlx::Pool<sqlx::Postgres>;
 
 #[derive(Default)]
 pub struct App {
