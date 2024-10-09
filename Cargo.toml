@@ -1,6 +1,6 @@
 [package]
 name = "velvet-web"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2021"
 authors = ["Raffaele Ragni <raffaele.ragni@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -11,7 +11,7 @@ documentation = "https://github.com/raffaeleragni/velvet/blob/master/README.md"
 readme = "README.md"
 keywords = ["webapp", "api", "microservice"]
 categories = ["web-programming", "web-programming::http-server"]
-include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE"]
+include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE", "/templates/login.html", "/templates/register.html"]
 
 [features]
 login = ["auth", "dep:argon2", "dep:futures-core"]
