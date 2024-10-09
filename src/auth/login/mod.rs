@@ -1,5 +1,7 @@
 #![cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
 
+pub mod default_flow;
+
 use super::{jwt::token_from_claims, CookieToken};
 use crate::prelude::AppResult;
 use argon2::{
@@ -103,7 +105,10 @@ async fn login_claims(db: &DB, username: &str, password: &str) -> AppResult<Clai
 }
 
 pub async fn login_token(db: &DB, username: &str, password: &str) -> AppResult<String> {
-    let claims = login_claims(db, username, password).await?;
+    let claims = login_claims(db, username, password).await.map_err(|e| {
+        warn!("{:?}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
     token_from_claims(&claims).map_err(|e| {
         warn!(e);
         StatusCode::UNAUTHORIZED.into()
@@ -117,10 +122,13 @@ pub async fn login_cookie(
     username: &str,
     password: &str,
 ) -> AppResult<(CookieJar, Redirect)> {
-    let claims = login_claims(db, username, password).await?;
+    let claims = login_claims(db, username, password).await.map_err(|e| {
+        warn!("{:?}", e);
+        StatusCode::UNAUTHORIZED
+    })?;
     let jar = CookieToken::set_from_claims(jar, claims).map_err(|e| {
         warn!(e);
-        StatusCode::UNPROCESSABLE_ENTITY
+        StatusCode::UNAUTHORIZED
     })?;
     Ok((jar, Redirect::to(redirect)))
 }

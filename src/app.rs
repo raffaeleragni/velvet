@@ -8,6 +8,7 @@ use axum_server::tls_rustls::RustlsConfig;
 use axum_test::{transport_layer::IntoTransportLayer, TestServer};
 use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
+use sqlx::Pool;
 use std::{env, net::SocketAddr, str::FromStr};
 use tokio::net::TcpListener;
 use tower_http::compression::CompressionLayer;
@@ -23,6 +24,15 @@ use tracing_subscriber::{
 };
 
 use crate::errors::AppResult;
+
+#[cfg(feature = "sqlite")]
+type DB = Pool<sqlx::Sqlite>;
+
+#[cfg(feature = "mysql")]
+type DB = Pool<sqlx::Mysql>;
+
+#[cfg(feature = "postgres")]
+type DB = Pool<sqlx::Postgres>;
 
 #[derive(Default)]
 pub struct App {
@@ -86,8 +96,8 @@ impl App {
     }
 
     #[cfg(feature = "login")]
-    pub fn default_auth_flow(self) -> Self {
-        self
+    pub async fn login_flow(self, db: &DB) -> Self {
+        crate::auth::login::default_flow::add_default_flow(db, self).await
     }
 
     async fn build(self) -> AppResult<BuiltApp> {
