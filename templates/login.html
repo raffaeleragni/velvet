@@ -1,12 +1,42 @@
 <html>
-    <head>
-    </head>
-    <body>
-        <form method="post" action="login">
-            <label for="username">Username</label><input id="username" type="text" name="username" />
-            <label for="password">Password</label><input id="password" type="password" name="password" />
-            <button>Login</button>
-            <a href="/register">Register</a>
-        </form>
-    </body>
+
+<head>
+    <style>
+        label,
+        button {
+            display: block;
+        }
+
+        form {
+            width: 300px;
+            margin: 50px auto 0 auto;
+            padding: 5px 12px;
+            border: black solid 1px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        input {
+            width: 100%;
+            margin: 5px 0;
+            padding: 3px 5px;
+        }
+
+        button, a {
+            margin: 5px 0;
+            padding: 3px 5px;
+            float: right;
+        }
+    </style>
+</head>
+
+<body>
+    <form method="post" action="login">
+        <label for="username">Username</label><input id="username" type="text" name="username" />
+        <label for="password">Password</label><input id="password" type="password" name="password" />
+        <button>Login</button>
+        <a href="/register">[Register]</a>
+    </form>
+</body>
+
 </html>
