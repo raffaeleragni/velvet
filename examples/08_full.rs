@@ -57,7 +57,10 @@ async fn login(jar: CookieJar) -> AppResult<(CookieJar, Redirect)> {
 #[template(path = "index.html")]
 struct Index;
 
-async fn index(Extension(db): Extension<Pool<Sqlite>>) -> AppResult<impl IntoResponse> {
+async fn index(
+    CookieClaims(_): CookieClaims<Claims>,
+    Extension(db): Extension<Pool<Sqlite>>,
+) -> AppResult<impl IntoResponse> {
     let _ = query!("pragma integrity_check")
         .fetch_one(&db)
         .await?

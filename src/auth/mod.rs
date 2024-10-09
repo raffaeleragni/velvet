@@ -13,6 +13,7 @@ use axum::{
     Router,
 };
 use axum_extra::extract::{cookie::Cookie, CookieJar};
+use jwt::claims_for;
 use reqwest::header::AUTHORIZATION;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -20,6 +21,9 @@ use std::error::Error;
 
 pub struct CookieToken(pub String);
 pub struct BearerToken(pub String);
+
+pub struct CookieClaims<T>(pub T);
+pub struct BearerClaims<T>(pub T);
 
 pub enum AuthResult {
     OK,
@@ -108,6 +112,21 @@ where
 }
 
 #[async_trait]
+impl<S, T> FromRequestParts<S> for CookieClaims<T>
+where
+    T: DeserializeOwned,
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let token = CookieToken::from_request_parts(parts, state).await?;
+        let claims = claims_for::<T>(token.0.as_str()).map_err(|_| response_unauthorized())?;
+        Ok(CookieClaims::<T>(claims))
+    }
+}
+
+#[async_trait]
 impl<S> FromRequestParts<S> for BearerToken
 where
     S: Send + Sync,
@@ -128,6 +147,22 @@ where
         }
     }
 }
+
+#[async_trait]
+impl<S, T> FromRequestParts<S> for BearerClaims<T>
+where
+    T: DeserializeOwned,
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let token = CookieToken::from_request_parts(parts, state).await?;
+        let claims = claims_for::<T>(token.0.as_str()).map_err(|_| response_unauthorized())?;
+        Ok(BearerClaims::<T>(claims))
+    }
+}
+
 
 async fn authorize_from_bearer<F>(request: Request, next: Next, f: F) -> Response
 where

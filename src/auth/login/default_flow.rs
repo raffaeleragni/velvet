@@ -12,7 +12,10 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
-pub async fn add_default_flow(db: &DB, app: App) -> App {
+#[derive(Debug, Default)]
+pub struct LoginConfig {}
+
+pub async fn add_default_flow(db: &DB, _config: LoginConfig, app: App) -> App {
     JWT::Secret.setup().await.expect("JWT initialization error");
     login_setup(db).await.expect("Login initialization error");
     let router = Router::new()

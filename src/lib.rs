@@ -69,6 +69,10 @@ pub mod prelude {
     #[cfg(feature = "auth")]
     pub use super::auth::CookieToken;
     #[cfg(feature = "auth")]
+    pub use super::auth::BearerClaims;
+    #[cfg(feature = "auth")]
+    pub use super::auth::CookieClaims;
+    #[cfg(feature = "auth")]
     pub use axum_extra::extract::CookieJar;
     #[cfg(feature = "auth")]
     pub use jsonwebtoken::DecodingKey;

@@ -96,7 +96,8 @@ impl App {
 
     #[cfg(feature = "login")]
     pub async fn login_flow(self, db: &DB) -> Self {
-        crate::auth::login::default_flow::add_default_flow(db, self).await
+        use crate::auth::login::default_flow::LoginConfig;
+        crate::auth::login::default_flow::add_default_flow(db, LoginConfig::default(), self).await
     }
 
     async fn build(self) -> AppResult<BuiltApp> {
