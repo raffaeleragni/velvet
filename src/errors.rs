@@ -1,6 +1,10 @@
 use std::{env::VarError, io};
 
-use axum::{body::Body, http::Response, response::{IntoResponse, Redirect}};
+use axum::{
+    body::Body,
+    http::Response,
+    response::{IntoResponse, Redirect},
+};
 use reqwest::StatusCode;
 use tracing::error;
 
@@ -18,7 +22,7 @@ impl From<Redirect> for AppError {
         Self {
             status: StatusCode::PERMANENT_REDIRECT,
             error: anyhow::anyhow!("None"),
-            redirect: Some(redirect)
+            redirect: Some(redirect),
         }
     }
 }
@@ -28,26 +32,29 @@ impl From<io::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
-            redirect: None
+            redirect: None,
         }
     }
 }
 
+#[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
 impl From<sqlx::Error> for AppError {
     fn from(value: sqlx::Error) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
-            redirect: None
+            redirect: None,
         }
     }
 }
+
+#[cfg(any(feature = "postgres", feature = "mysql", feature = "sqlite"))]
 impl From<sqlx::migrate::MigrateError> for AppError {
     fn from(value: sqlx::migrate::MigrateError) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
-            redirect: None
+            redirect: None,
         }
     }
 }
@@ -57,7 +64,7 @@ impl From<reqwest::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
-            redirect: None
+            redirect: None,
         }
     }
 }
@@ -67,7 +74,7 @@ impl From<anyhow::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value,
-            redirect: None
+            redirect: None,
         }
     }
 }
@@ -77,7 +84,7 @@ impl From<VarError> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),
-            redirect: None
+            redirect: None,
         }
     }
 }
@@ -87,7 +94,7 @@ impl From<StatusCode> for AppError {
         Self {
             status,
             error: anyhow::Error::msg(status.canonical_reason().unwrap_or("")),
-            redirect: None
+            redirect: None,
         }
     }
 }
@@ -98,7 +105,7 @@ impl From<argon2::password_hash::Error> for AppError {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: error.into(),
-            redirect: None
+            redirect: None,
         }
     }
 }

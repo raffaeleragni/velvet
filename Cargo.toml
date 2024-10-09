@@ -16,9 +16,9 @@ include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE", "/templates/login.html", "
 [features]
 login = ["auth", "dep:argon2", "dep:futures-core"]
 auth = ["dep:axum-extra", "dep:jsonwebtoken"]
-mysql = ["sqlx/mysql"]
-postgres = ["sqlx/postgres"]
-sqlite = ["sqlx/sqlite"]
+mysql = ["dep:sqlx", "sqlx/mysql"]
+postgres = ["dep:sqlx", "sqlx/postgres"]
+sqlite = ["dep:sqlx", "sqlx/sqlite"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -33,7 +33,7 @@ axum-server = { version = "0.7.1", features = ["rustls", "tls-rustls", "tokio-ru
 askama = { version = "0.12", features = ["with-axum"] }
 askama_axum = "0.4"
 
-sqlx = { version = "0.8", features = ["runtime-tokio"] }
+sqlx = { version = "0.8", optional = true, features = ["runtime-tokio"] }
 
 dotenvy = "0.15"
 
