@@ -12,8 +12,6 @@ struct Claims {
 async fn main() -> AppResult<()> {
     let db = sqlite().await;
     sqlx::migrate!().run(&db).await?;
-    JWT::Secret.setup().await?;
-    login_setup(&db).await?;
     let router = Router::new()
         .route("/", get(index))
         // everything above this authorized method will require auth
