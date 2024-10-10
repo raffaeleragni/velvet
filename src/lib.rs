@@ -6,6 +6,7 @@ mod client;
 mod db;
 mod errors;
 mod metrics;
+mod mail;
 
 #[macro_use]
 pub mod prelude {
@@ -32,6 +33,12 @@ pub mod prelude {
     pub use serde::{Deserialize, Serialize};
     pub use tracing::{debug, error, info, instrument, span, trace, warn, Level};
     pub use valuable::Valuable;
+
+    pub use super::mail::mailer;
+    pub use lettre::SmtpTransport as MailTransport;
+    pub use lettre::Message as MailMessage;
+    pub use lettre::Transport as MailTransportTrait;
+    pub use lettre::message::header::ContentType as MailContentType;
 
     #[cfg(feature = "mysql")]
     pub use super::db::mysql;

@@ -24,12 +24,15 @@ use tracing_subscriber::{
 
 use crate::errors::AppResult;
 
+#[cfg(feature = "login")]
 #[cfg(feature = "sqlite")]
 type DB = sqlx::Pool<sqlx::Sqlite>;
 
+#[cfg(feature = "login")]
 #[cfg(feature = "mysql")]
 type DB = sqlx::Pool<sqlx::Mysql>;
 
+#[cfg(feature = "login")]
 #[cfg(feature = "postgres")]
 type DB = sqlx::Pool<sqlx::Postgres>;
 

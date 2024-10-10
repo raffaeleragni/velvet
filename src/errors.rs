@@ -110,6 +110,26 @@ impl From<argon2::password_hash::Error> for AppError {
     }
 }
 
+impl From<lettre::error::Error> for AppError {
+    fn from(value: lettre::error::Error) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+            redirect: None,
+        }
+    }
+}
+
+impl From<lettre::transport::smtp::Error> for AppError {
+    fn from(value: lettre::transport::smtp::Error) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+            redirect: None,
+        }
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response<Body> {
         if let Some(r) = self.redirect {
