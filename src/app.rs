@@ -103,6 +103,12 @@ impl App {
         crate::auth::login::default_flow::add_default_flow(db, LoginConfig::default(), self).await
     }
 
+    #[cfg(feature = "login")]
+    pub async fn login_flow_with_mail(self, db: &DB) -> Self {
+        use crate::auth::login::default_flow::LoginConfig;
+        crate::auth::login::default_flow::add_mail_flow(db, LoginConfig::default(), self).await
+    }
+
     async fn build(self) -> AppResult<BuiltApp> {
         let _guard = sentry();
         let compression_layer: CompressionLayer = CompressionLayer::new()

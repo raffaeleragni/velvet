@@ -18,7 +18,7 @@ pub mod prelude {
     pub use super::metrics::metric_gauge;
     pub use super::metrics::metric_histogram;
     pub use askama::Template;
-    pub use axum::extract::{Form, Json, Path};
+    pub use axum::extract::{Form, Json, Path, Host};
     pub use axum::http::HeaderMap;
     pub use axum::http::HeaderName;
     pub use axum::http::HeaderValue;

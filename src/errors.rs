@@ -17,6 +17,16 @@ pub struct AppError {
     redirect: Option<Redirect>,
 }
 
+impl From<&str> for AppError {
+    fn from(value: &str) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: anyhow::anyhow!(value.to_string()),
+            redirect: None,
+        }
+    }
+}
+
 impl From<Redirect> for AppError {
     fn from(redirect: Redirect) -> Self {
         Self {
@@ -122,6 +132,16 @@ impl From<lettre::error::Error> for AppError {
 
 impl From<lettre::transport::smtp::Error> for AppError {
     fn from(value: lettre::transport::smtp::Error) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            error: value.into(),
+            redirect: None,
+        }
+    }
+}
+
+impl From<lettre::address::AddressError> for AppError {
+    fn from(value: lettre::address::AddressError) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             error: value.into(),

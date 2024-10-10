@@ -1,0 +1,7 @@
+This email is a registration confirmation to {{site}}.
+
+A user has registered with the user name {{username}}.
+
+If this was not you then DELETE this email and DO NOT click the link.
+
+If you registered as {{username}} then continue on {{link}} and use the code {{code}} at the confirmation form.

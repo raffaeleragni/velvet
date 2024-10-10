@@ -1,0 +1,43 @@
+<html>
+
+<head>
+    <style>
+        label,
+        button {
+            display: block;
+        }
+
+        form {
+            width: 300px;
+            margin: 50px auto 0 auto;
+            padding: 5px 12px;
+            border: black solid 1px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        input {
+            width: 100%;
+            margin: 5px 0;
+            padding: 3px 5px;
+        }
+
+        button,
+        a {
+            margin: 5px 0;
+            padding: 3px 5px;
+            float: right;
+        }
+    </style>
+</head>
+
+<body>
+    <form method="post" action="confirm">
+        <p>A code should arrive via email.</p>
+        <label for="username">Username</label><input id="username" type="text" name="username" value="{{username}}" readonly />
+        <label for="email">Code</label><input id="code" type="text" name="code" />
+        <button>Confirm</button>
+    </form>
+</body>
+
+</html>
