@@ -1,12 +1,9 @@
-use crate::prelude::AppResult;
-use askama::Template;
 use lettre::{
-    message::MultiPart,
     transport::smtp::{
         authentication::Credentials,
         client::{Tls, TlsParameters},
     },
-    Message, SmtpTransport, Transport,
+    SmtpTransport,
 };
 use std::env;
 use tracing::warn;
@@ -41,7 +38,8 @@ pub fn mailer() -> SmtpTransport {
     mailer.build()
 }
 
-#[derive(Template)]
+#[cfg(feature = "login")]
+#[derive(askama::Template)]
 #[template(path = "mail_confirm.html")]
 struct HtmlMail {
     username: String,
@@ -50,7 +48,8 @@ struct HtmlMail {
     site: String,
 }
 
-#[derive(Template)]
+#[cfg(feature = "login")]
+#[derive(askama::Template)]
 #[template(path = "mail_confirm.txt")]
 struct TextMail {
     username: String,
@@ -59,6 +58,7 @@ struct TextMail {
     site: String,
 }
 
+#[cfg(feature = "login")]
 pub fn send_confirmation_email(
     mailer: crate::prelude::MailTransport,
     host: &str,
@@ -66,7 +66,9 @@ pub fn send_confirmation_email(
     username: &str,
     email: &str,
     code: &str,
-) -> AppResult<()> {
+) -> crate::prelude::AppResult<()> {
+    use lettre::{message::MultiPart, Message, Transport};
+
     let Ok(from) = env::var("MAIL_FROM") else {
         return Err("no MAIL_FROM env found".into());
     };
