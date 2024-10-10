@@ -94,6 +94,14 @@ Using also Askama templates, and JWT through cookie setting.
 
 [example](examples/10_login.rs)
 
+## Sending mails
+
+[example](examples/11_mail.rs)
+
+## Login with email confirmation link
+
+[example](examples/12_login_mail.rs)
+
 ## Default routes already implemented
 
   - Status (no-op): http GET /status/liveness
@@ -113,3 +121,15 @@ Using also Askama templates, and JWT through cookie setting.
   - TLS=true (or any string)
   - TLS_PEM_CERT=cert.pem
   - TLS_PEM_KEY=key.pem
+
+## To setup SMTP/MAIL:
+
+Mail setup works only with TLS (port 465 if not set)
+
+  - MAIL_FROM=test@test.com
+  - MAIL_HOST=localhost
+  - MAIL_PORT=2525
+  - MAIL_USERNAME=user
+  - MAIL_PASSWORD=password
+  - MAIL_ACCEPT_INVALID_CERTS=true if in develop mode
+

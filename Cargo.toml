@@ -1,6 +1,6 @@
 [package]
 name = "velvet-web"
-version = "0.6.9"
+version = "0.6.10"
 edition = "2021"
 authors = ["Raffaele Ragni <raffaele.ragni@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -14,7 +14,6 @@ categories = ["web-programming", "web-programming::http-server"]
 include = ["/src", "/LICENSE-MIT", "/LICENSE-APACHE", "/templates/login.html", "/templates/register.html", "/templates/mail_confirm.txt", "/templates/mail_confirm.html", "/templates/confirm.html"]
 
 [features]
-default = ["login", "sqlite"]
 login = ["auth", "dep:argon2", "dep:futures-core"]
 auth = ["dep:axum-extra", "dep:jsonwebtoken"]
 mysql = ["dep:sqlx", "sqlx/mysql"]
@@ -72,4 +71,7 @@ name = "08_full"
 required-features = ["sqlite", "auth"]
 [[example]]
 name = "10_login"
+required-features = ["sqlite", "auth", "login"]
+[[example]]
+name = "12_login_mail"
 required-features = ["sqlite", "auth", "login"]
