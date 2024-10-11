@@ -3,12 +3,12 @@ use axum::{
     routing::{get, MethodRouter},
     Extension, Router,
 };
-use axum_prometheus::PrometheusMetricLayer;
+use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use axum_server::tls_rustls::RustlsConfig;
 use axum_test::{transport_layer::IntoTransportLayer, TestServer};
 use rust_embed::RustEmbed;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
-use std::{env, net::SocketAddr, str::FromStr};
+use std::{env, net::SocketAddr, str::FromStr, sync::LazyLock};
 use tokio::net::TcpListener;
 use tower_http::compression::CompressionLayer;
 use tracing::info;
@@ -273,11 +273,15 @@ pub(crate) fn logger() {
     };
 }
 
+// axum-prometheus can be initialized only once and would otherwise cause problems for
+// simulated envoronments that recreate the app, such as tests, so need to keep a static
+static METRICS: LazyLock<(PrometheusMetricLayer, PrometheusHandle)> =
+    LazyLock::new(PrometheusMetricLayer::pair);
+
 fn prometheus(app: Router) -> Router {
-    let (metric_gatherer, metric_printer) = PrometheusMetricLayer::pair();
     app.route(
         "/metrics/prometheus",
-        get(|| async move { metric_printer.render() }),
+        get(|| async move { METRICS.to_owned().1.render() }),
     )
-    .layer(metric_gatherer)
+    .layer(METRICS.to_owned().0)
 }
