@@ -41,12 +41,6 @@ pub struct App {
     router: Router,
 }
 
-pub struct BuiltApp {
-    app: App,
-    addr: SocketAddr,
-    tls: Option<RustlsConfig>,
-}
-
 impl App {
     pub fn new() -> Self {
         // May not know if app is constructed before database, so trigger dotenvs in both situations
@@ -156,20 +150,6 @@ impl App {
     }
 }
 
-impl BuiltApp {
-    pub async fn start(self) -> AppResult<()> {
-        match self.tls {
-            Some(tls_config) => {
-                axum_server::bind_rustls(self.addr, tls_config)
-                    .serve(self.app.router.into_make_service())
-                    .await?
-            }
-            None => axum::serve(TcpListener::bind(self.addr).await?, self.app.router).await?,
-        }
-        Ok(())
-    }
-}
-
 impl IntoTransportLayer for App {
     fn into_http_transport_layer(
         self,
@@ -185,6 +165,26 @@ impl IntoTransportLayer for App {
     }
 }
 
+pub struct BuiltApp {
+    app: App,
+    addr: SocketAddr,
+    tls: Option<RustlsConfig>,
+}
+
+impl BuiltApp {
+    pub async fn start(self) -> AppResult<()> {
+        match self.tls {
+            Some(tls_config) => {
+                axum_server::bind_rustls(self.addr, tls_config)
+                    .serve(self.app.router.into_make_service())
+                    .await?
+            }
+            None => axum::serve(TcpListener::bind(self.addr).await?, self.app.router).await?,
+        }
+        Ok(())
+    }
+}
+
 impl IntoTransportLayer for BuiltApp {
     fn into_http_transport_layer(
         self,
@@ -197,6 +197,42 @@ impl IntoTransportLayer for BuiltApp {
         self,
     ) -> anyhow::Result<Box<dyn axum_test::transport_layer::TransportLayer>> {
         self.app.router.into_mock_transport_layer()
+    }
+}
+
+#[cfg(feature = "login")]
+#[allow(async_fn_in_trait)]
+pub trait TestLoginAsCookie {
+    async fn login_as(self, username: &str) -> Self;
+}
+
+#[cfg(feature = "login")]
+impl TestLoginAsCookie for TestServer {
+    async fn login_as(self, username: &str) -> Self {
+        use crate::auth::jwt::token_from_claims;
+        use crate::prelude::JWT;
+        use axum_extra::extract::cookie::Cookie;
+        use serde::Serialize;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        #[derive(Serialize)]
+        struct Claims {
+            exp: u64,
+            username: String,
+        }
+        JWT::Secret.setup().await.unwrap();
+        let token = token_from_claims(&Claims {
+            exp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+                + 3600 * 24,
+            username: username.to_string(),
+        })
+        .unwrap();
+        let mut server = self;
+        server.add_cookie(Cookie::new("token", token));
+        server
     }
 }
 

@@ -12,7 +12,7 @@ pub fn mailer() -> SmtpTransport {
     dotenvy::dotenv().ok();
     rustls::crypto::ring::default_provider()
         .install_default()
-        .expect("Failed to install rustls crypto provider");
+        .ok();
     env::var("MAIL_FROM").expect("env var MAIL_FROM required to setup mail system");
     let host = env::var("MAIL_HOST").expect("env var MAIL_HOST required to setup mail system");
     let mut tls = TlsParameters::builder(host.clone());

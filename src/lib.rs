@@ -11,6 +11,8 @@ mod mail;
 #[macro_use]
 pub mod prelude {
     pub use super::app::App;
+    #[cfg(feature = "login")]
+    pub use super::app::TestLoginAsCookie;
     pub use super::client::client;
     pub use super::errors::AppError;
     pub use super::errors::AppResult;
