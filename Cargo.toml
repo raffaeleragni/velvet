@@ -39,8 +39,8 @@ sqlx = { version = "0.8", optional = true, features = ["runtime-tokio"] }
 dotenvy = "0.15"
 
 anyhow = "1"
-sentry = { version = "0.34", default-features = false, features = ["anyhow", "tower", "tracing", "rustls"] }
-sentry-tower = { version = "0.34", features = ["axum", "http"] }
+sentry = { version = "0.35", default-features = false, features = ["anyhow", "tower", "tracing", "rustls"] }
+sentry-tower = { version = "0.35", features = ["axum", "http"] }
 tracing = "0.1"
 valuable = { version = "0.1.0", features = ["derive", "valuable-derive"] }
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
