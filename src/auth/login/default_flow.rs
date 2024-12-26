@@ -37,7 +37,7 @@ pub async fn add_mail_flow(db: &DB, _config: LoginConfig, app: App) -> App {
         .route("/confirm", get(confirm_form).post(confirm))
         .route("/login", get(login_form).post(login))
         .route("/logout", get(logout));
-    app.router(router).inject(mailer())
+    app.router(router).inject(crate::mail::mailer())
 }
 
 #[derive(Deserialize)]
