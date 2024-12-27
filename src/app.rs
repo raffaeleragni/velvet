@@ -36,12 +36,30 @@ type DB = sqlx::Pool<sqlx::Mysql>;
 #[cfg(feature = "postgres")]
 type DB = sqlx::Pool<sqlx::Postgres>;
 
+/// An application.
+/// This is handling the main application setup and execution entry point.
+///
+/// Quickstart with:
+/// ```rust
+/// use velvet_web::prelude::*;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     App::new().start().await;
+/// }
+/// ```
 #[derive(Default)]
 pub struct App {
     router: Router,
 }
 
 impl App {
+    /// Creates a new application.
+    /// Takes care of:
+    ///   - initializing/reading .env file
+    ///   - initializing the logger
+    ///
+    /// Structured logging (json) will be enabled if in .env: STRUCTURED_LOGGING=true
     pub fn new() -> Self {
         // May not know if app is constructed before database, so trigger dotenvs in both situations
         dotenvy::dotenv().ok();
@@ -49,22 +67,43 @@ impl App {
         App::default()
     }
 
+    /// Starts the server.
+    ///
+    /// Initializes the listening port, TLS(optional), prometheus endpoint, sentry(optional).
+    ///
+    /// Listening details can be changed in .env with:
+    ///   - SERVER_BIND: listening address
+    ///   - SERVER_PORT: listening port
+    ///
+    /// TLS can be setup by pointing these two .env vars to the respective .pem files:
+    ///   - TLS=true
+    ///   - TLS_PEM_CERT=cert.pem
+    ///   - TLS_PEM_KEY=key.pem
+    ///
+    /// To use sentry, setup the .env var SENTRY_URL.
     pub async fn start(self) -> AppResult<()> {
         self.build().await?.start().await
     }
 
+    /// Append the set of routes to the current application routes.
     pub fn router(self, router: Router) -> Self {
         Self {
             router: self.router.merge(router),
         }
     }
 
+    /// Injects a new extension into the application.
+    /// This instance will be available (via clone) when using the Extension<T> extractor for this
+    /// type T.
     pub fn inject<T: Clone + Send + Sync + 'static>(self, t: T) -> Self {
         Self {
             router: self.router.layer(Extension(t)),
         }
     }
 
+    /// Serve static files by path from root, from a RustEmbed setup.
+    /// RustEmbed will build the contents of the files directly in the binary of the application,
+    /// without requiring them to be deployed along.
     pub fn statics<T: RustEmbed>(self) -> Self {
         let mut app = self;
         for file in T::iter() {
@@ -81,23 +120,38 @@ impl App {
         app
     }
 
+    /// Append a new single route to the application
     pub fn route(self, path: &str, method_router: MethodRouter<()>) -> Self {
         let mut app = self;
         app.router = app.router.route(path, method_router);
         app
     }
 
+    /// Returns the application as a test harness.
     pub async fn as_test_server(self) -> TestServer {
         TestServer::new(self.build().await.unwrap()).unwrap()
     }
 
     #[cfg(feature = "login")]
+    /// Setup the login flow
+    /// Registration is handled without email confirmation.
+    /// Required for setup .env:
+    ///  - JWT_SECRET=<secret>
     pub async fn login_flow(self, db: &DB) -> Self {
         use crate::auth::login::default_flow::LoginConfig;
         crate::auth::login::default_flow::add_default_flow(db, LoginConfig::default(), self).await
     }
 
     #[cfg(feature = "login")]
+    /// Setup the login flow with registration requiring mail confirmation.
+    /// Required for setup is the mail environment variables in .env, for example:
+    ///  - JWT_SECRET=<secret>
+    ///  - MAIL_FROM=test@test.com
+    ///  - MAIL_HOST=localhost
+    ///  - MAIL_PORT=2525
+    ///  - MAIL_USERNAME=user
+    ///  - MAIL_PASSWORD=password
+    ///  - MAIL_ACCEPT_INVALID_CERTS=true
     pub async fn login_flow_with_mail(self, db: &DB) -> Self {
         use crate::auth::login::default_flow::LoginConfig;
         crate::auth::login::default_flow::add_mail_flow(db, LoginConfig::default(), self).await
@@ -165,6 +219,8 @@ impl IntoTransportLayer for App {
     }
 }
 
+/// An instance of an application ready to run.
+/// Cannot be changed once built, only ran.
 pub struct BuiltApp {
     app: App,
     addr: SocketAddr,
@@ -202,6 +258,7 @@ impl IntoTransportLayer for BuiltApp {
 
 #[cfg(feature = "login")]
 #[allow(async_fn_in_trait)]
+/// Utility for testing the application with a cookie token
 pub trait TestLoginAsCookie {
     async fn login_as(self, username: &str) -> Self;
 }
@@ -250,6 +307,7 @@ fn sentry() -> Option<sentry::ClientInitGuard> {
     None
 }
 
+/// Setup the logger, this is already called internally on App::new().
 pub(crate) fn logger() {
     let enabled: bool = env::var("STRUCTURED_LOGGING")
         .map(|s| s.parse::<bool>().unwrap_or(false))

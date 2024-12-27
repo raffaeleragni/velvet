@@ -1,4 +1,7 @@
 #[cfg(feature = "postgres")]
+/// Create a new pool for postgres
+/// Example URL for .env:
+///   - DATABASE_URL=postgres://user:pw@localhost/db
 pub async fn postgres() -> sqlx::PgPool {
     // May not know if app is constructed before databse, so trigger dotenvs in both situations
     dotenvy::dotenv().ok();
@@ -17,6 +20,9 @@ pub async fn postgres() -> sqlx::PgPool {
 }
 
 #[cfg(feature = "sqlite")]
+/// Create a new pool for sqlite
+/// Example URL for .env:
+///   - DATABASE_URL=sqlite:test.db?mode=rwc
 pub async fn sqlite() -> sqlx::SqlitePool {
     dotenvy::dotenv().ok();
     crate::app::logger();
@@ -34,6 +40,9 @@ pub async fn sqlite() -> sqlx::SqlitePool {
 }
 
 #[cfg(feature = "mysql")]
+/// Create a new pool for mysql
+/// Example URL for .env:
+///   - DATABASE_URL=mysql://user:pw@localhost/db
 pub async fn mysql() -> sqlx::MySqlPool {
     dotenvy::dotenv().ok();
     crate::app::logger();

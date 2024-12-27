@@ -8,6 +8,14 @@ use lettre::{
 use std::env;
 use tracing::warn;
 
+/// Setup a mailer instance.
+/// Example .env vars:
+///  - MAIL_FROM=test@test.com
+///  - MAIL_HOST=localhost
+///  - MAIL_PORT=2525
+///  - MAIL_USERNAME=user
+///  - MAIL_PASSWORD=password
+///  - MAIL_ACCEPT_INVALID_CERTS=true
 pub fn mailer() -> SmtpTransport {
     dotenvy::dotenv().ok();
     rustls::crypto::ring::default_provider()
@@ -59,6 +67,8 @@ struct TextMail {
 }
 
 #[cfg(feature = "login")]
+/// Sends a confirmation email for registration.
+/// This is already used internally when the mail flow is chosen.
 pub fn send_confirmation_email(
     mailer: crate::prelude::MailTransport,
     host: &str,

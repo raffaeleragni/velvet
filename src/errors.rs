@@ -10,6 +10,8 @@ use tracing::error;
 
 pub type AppResult<T> = Result<T, AppError>;
 
+/// This is a general Application error.
+/// This error is already converted from typical usage of the dependencies of the stack.
 #[derive(Debug)]
 pub struct AppError {
     status: StatusCode,
