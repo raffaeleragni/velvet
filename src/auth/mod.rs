@@ -15,8 +15,8 @@ use axum::{
 use axum_extra::extract::{cookie::Cookie, CookieJar};
 use jwt::claims_for;
 use reqwest::header::AUTHORIZATION;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::{de::DeserializeOwned, Deserialize};
 use std::error::Error;
 
 pub struct CookieToken(pub String);
@@ -55,11 +55,15 @@ where
     fn authorized_bearer_claims(self, f: FT) -> Self;
 }
 
+pub trait AuthorizedBearerWithRole {
+    fn authorized_bearer_role(self, role: String) -> Self;
+}
+
 pub trait AuthorizedCookie<F>
 where
     F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie(self, redirect: &'static str, f: F) -> Self;
+    fn authorized_cookie(self, redirect_to_login: &'static str, f: F) -> Self;
 }
 
 pub trait AuthorizedCookieWithClaims<T, FT>
@@ -67,7 +71,11 @@ where
     T: DeserializeOwned,
     FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie_claims(self, redirect: &'static str, f: FT) -> Self;
+    fn authorized_cookie_claims(self, redirect_to_login: &'static str, f: FT) -> Self;
+}
+
+pub trait AuthorizedCookieWithRole {
+    fn authorized_cookie_role(self, redirect_to_login: &'static str, role: &'static str) -> Self;
 }
 
 impl CookieToken {
@@ -163,7 +171,6 @@ where
     }
 }
 
-
 async fn authorize_from_bearer<F>(request: Request, next: Next, f: F) -> Response
 where
     F: Fn(&str) -> anyhow::Result<AuthResult>,
@@ -247,12 +254,28 @@ where
     }
 }
 
+impl AuthorizedBearerWithRole for Router {
+    fn authorized_bearer_role(self, role: String) -> Self {
+        #[derive(Deserialize)]
+        struct Claims {
+            roles: Vec<String>,
+        }
+        self.authorized_bearer_claims(move |c: Claims| {
+            if c.roles.contains(&role) {
+                Ok(AuthResult::OK)
+            } else {
+                Ok(AuthResult::Unauthorized)
+            }
+        })
+    }
+}
+
 impl<F> AuthorizedCookie<F> for Router
 where
     F: Send + Sync + Clone + Fn(&str) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie(self, redirect: &'static str, f: F) -> Self {
-        let wrapper = move |r, n| authorize_from_cookie(r, n, redirect, f.clone());
+    fn authorized_cookie(self, redirect_to_login: &'static str, f: F) -> Self {
+        let wrapper = move |r, n| authorize_from_cookie(r, n, redirect_to_login, f.clone());
         self.layer(middleware::from_fn(wrapper))
     }
 }
@@ -262,10 +285,26 @@ where
     T: DeserializeOwned,
     FT: Send + Sync + Clone + Fn(T) -> anyhow::Result<AuthResult> + 'static,
 {
-    fn authorized_cookie_claims(self, redirect: &'static str, f: FT) -> Self {
+    fn authorized_cookie_claims(self, redirect_to_login: &'static str, f: FT) -> Self {
         let f2 = move |token: &str| f(jwt::claims_for::<T>(token)?);
-        let wrapper = move |r, n| authorize_from_cookie(r, n, redirect, f2.clone());
+        let wrapper = move |r, n| authorize_from_cookie(r, n, redirect_to_login, f2.clone());
         self.layer(middleware::from_fn(wrapper))
+    }
+}
+
+impl AuthorizedCookieWithRole for Router {
+    fn authorized_cookie_role(self, redirect_to_login: &'static str, role: &'static str) -> Self {
+        #[derive(Deserialize)]
+        struct Claims {
+            roles: Vec<String>,
+        }
+        self.authorized_cookie_claims(redirect_to_login, move |c: Claims| {
+            if c.roles.contains(&role.to_string()) {
+                Ok(AuthResult::OK)
+            } else {
+                Ok(AuthResult::Unauthorized)
+            }
+        })
     }
 }
 

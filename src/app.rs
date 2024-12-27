@@ -260,12 +260,12 @@ impl IntoTransportLayer for BuiltApp {
 #[allow(async_fn_in_trait)]
 /// Utility for testing the application with a cookie token
 pub trait TestLoginAsCookie {
-    async fn login_as(self, username: &str) -> Self;
+    async fn login_as(self, username: &str, role: &str) -> Self;
 }
 
 #[cfg(feature = "login")]
 impl TestLoginAsCookie for TestServer {
-    async fn login_as(self, username: &str) -> Self {
+    async fn login_as(self, username: &str, role: &str) -> Self {
         use crate::auth::jwt::token_from_claims;
         use crate::prelude::JWT;
         use axum_extra::extract::cookie::Cookie;
@@ -276,6 +276,7 @@ impl TestLoginAsCookie for TestServer {
         struct Claims {
             exp: u64,
             username: String,
+            roles: Vec<String>,
         }
         JWT::Secret.setup().await.unwrap();
         let token = token_from_claims(&Claims {
@@ -284,6 +285,7 @@ impl TestLoginAsCookie for TestServer {
                 .unwrap()
                 .as_secs()
                 + 3600 * 24,
+            roles: vec![role.to_string()],
             username: username.to_string(),
         })
         .unwrap();

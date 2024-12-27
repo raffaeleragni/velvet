@@ -31,6 +31,7 @@ pub async fn login_setup(db: &DB) -> AppResult<()> {
 create table if not exists login (
     userid varchar(255) not null,
     username varchar(255) not null,
+    roles varchar(255) default 'user',
     email varchar(255),
     password varchar(255) not null,
     confirmation_code varchar(255) not null,
@@ -84,11 +85,12 @@ pub async fn register_user_confirm(
 struct Claims {
     exp: u64,
     username: String,
+    roles: Vec<String>,
 }
 
 async fn login_claims(db: &DB, username: &str, password: &str) -> AppResult<Claims> {
-    let row: (String, String) =
-        sqlx::query_as("select username, password from login where username = ? and confirmed = 1")
+    let row: (String, String, String) =
+        sqlx::query_as("select username, password, roles from login where username = ? and confirmed = 1")
             .bind(username)
             .fetch_one(db)
             .await?;
@@ -96,6 +98,7 @@ async fn login_claims(db: &DB, username: &str, password: &str) -> AppResult<Clai
     Argon2::default().verify_password(password.as_bytes(), &hash)?;
     Ok(Claims {
         username: username.to_string(),
+        roles: row.2.split(",").map(String::from).collect(),
         exp: SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
